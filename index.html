@@ -5,33 +5,175 @@
 	<meta name="viewport" content="width=device-width,initial-scale=1" />
 	<title>HTML Games — Home</title>
 	<style>
-		body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:0;background:#0b1220;color:#e6eef8}
-		.wrap{max-width:900px;margin:6vh auto;padding:24px;text-align:center}
-		h1{margin:0 0 12px;font-size:2.2rem}
-		p.lead{color:#bcd3f0;margin:0 0 24px}
-		.grid{display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
-		.card{background:#0f1724;padding:18px 24px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,.6);min-width:220px}
-		.card h2{margin:0 0 8px;font-size:1.1rem}
-		.card p{margin:0 0 12px;color:#9fb3d8;font-size:.95rem}
-		.btn{display:inline-block;padding:10px 14px;border-radius:8px;background:#2b8cff;color:white;text-decoration:none}
-		.foot{margin-top:28px;color:#98b6db;font-size:.9rem}
+		:root {
+			--neon-blue: #0066ff;
+			--neon-cyan: #00d9ff;
+			--navy: #001a4d;
+			--white: #ffffff;
+			--light-gray: #f0f4ff;
+		}
+
+		body {
+			font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+			margin: 0;
+			background: linear-gradient(135deg, #ffffff 0%, #0033cc 50%, #ffffff 100%);
+			color: var(--light-gray);
+			min-height: 100vh;
+			position: relative;
+			overflow-x: hidden;
+		}
+
+		body::before {
+			content: '';
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: 
+				radial-gradient(circle at 20% 50%, rgba(0, 217, 255, 0.1), transparent 50%),
+				radial-gradient(circle at 80% 80%, rgba(0, 102, 255, 0.1), transparent 50%);
+			pointer-events: none;
+			z-index: 0;
+		}
+
+		.wrap {
+			max-width: 900px;
+			margin: 6vh auto;
+			padding: 24px;
+			text-align: center;
+			position: relative;
+			z-index: 1;
+		}
+
+		h1 {
+			margin: 0 0 12px;
+			font-size: 2.8rem;
+			font-weight: 800;
+			letter-spacing: 0.08em;
+			background: linear-gradient(90deg, #00d9ff, #0066ff, #00d9ff);
+			background-size: 200% 200%;
+			-webkit-background-clip: text;
+			background-clip: text;
+			-webkit-text-fill-color: transparent;
+			animation: gradientShift 3s ease infinite;
+			text-transform: uppercase;
+		}
+
+		@keyframes gradientShift {
+			0%, 100% { background-position: 0% 50%; }
+			50% { background-position: 100% 50%; }
+		}
+
+		p.lead {
+			color: #b3d9ff;
+			margin: 0 0 24px;
+			font-size: 1.1rem;
+			letter-spacing: 0.04em;
+		}
+
+		.grid {
+			display: flex;
+			gap: 24px;
+			justify-content: center;
+			flex-wrap: wrap;
+		}
+
+		.card {
+			background: rgba(0, 26, 77, 0.6);
+			padding: 28px;
+			border-radius: 16px;
+			min-width: 260px;
+			border: 2px solid rgba(0, 217, 255, 0.3);
+			box-shadow: 
+				0 0 20px rgba(0, 102, 255, 0.3),
+				inset 0 0 20px rgba(0, 217, 255, 0.05);
+			backdrop-filter: blur(8px);
+			transition: all 0.3s ease;
+			position: relative;
+		}
+
+		.card::before {
+			content: '';
+			position: absolute;
+			inset: 0;
+			border-radius: 16px;
+			background: linear-gradient(135deg, transparent, rgba(0, 217, 255, 0.1), transparent);
+			opacity: 0;
+			transition: opacity 0.3s ease;
+		}
+
+		.card:hover {
+			border-color: rgba(0, 217, 255, 0.8);
+			box-shadow: 
+				0 0 40px rgba(0, 102, 255, 0.5),
+				0 0 60px rgba(0, 217, 255, 0.3),
+				inset 0 0 20px rgba(0, 217, 255, 0.1);
+			transform: translateY(-4px);
+		}
+
+		.card:hover::before {
+			opacity: 1;
+		}
+
+		.card h2 {
+			margin: 0 0 8px;
+			font-size: 1.4rem;
+			color: var(--white);
+			letter-spacing: 0.06em;
+			text-transform: uppercase;
+		}
+
+		.card p {
+			margin: 0 0 16px;
+			color: #b3d9ff;
+			font-size: 0.95rem;
+		}
+
+		.btn {
+			display: inline-block;
+			padding: 12px 24px;
+			border-radius: 10px;
+			background: linear-gradient(135deg, #0066ff, #00d9ff);
+			color: var(--white);
+			text-decoration: none;
+			font-weight: 700;
+			letter-spacing: 0.05em;
+			text-transform: uppercase;
+			transition: all 0.3s ease;
+			box-shadow: 0 0 20px rgba(0, 102, 255, 0.4);
+			border: 1px solid rgba(0, 217, 255, 0.5);
+		}
+
+		.btn:hover {
+			box-shadow: 
+				0 0 30px rgba(0, 217, 255, 0.6),
+				0 0 50px rgba(0, 102, 255, 0.4);
+			transform: translateY(-2px);
+		}
+
+		.foot {
+			margin-top: 28px;
+			color: #7fa3d8;
+			font-size: 0.9rem;
+		}
 	</style>
 </head>
 <body>
 	<div class="wrap">
-		<h1>HTML Games</h1>
+		<h1>ISGames</h1>
 		<p class="lead">Choose a game to play.</p>
 
 		<div class="grid">
 			<div class="card">
 				<h2>Pong</h2>
-				<p>Classic Pong — open the main Pong page.</p>
+				<p>Classic Pong, nothing more to say.</p>
 				<a class="btn" href="pong/pong_starting_screen.html">Play Pong</a>
 			</div>
 
 			<div class="card">
 				<h2>Catch the Mouse</h2>
-				<p>Click the mouse as it appears.</p>
+				<p>Click the mouse as it moves to triumph.</p>
 				<a class="btn" href="catch_mouse/catch_mouse_starting_screen.html">Play Catch the Mouse</a>
 			</div>
 		</div>
