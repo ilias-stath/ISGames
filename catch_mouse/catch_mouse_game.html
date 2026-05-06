@@ -5,59 +5,261 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Catch Me Game</title>
     <style>
+        :root {
+            --bg-light: #f5f7fa;
+            --bg-dark: #e8ecf1;
+            --text: #1a1f36;
+            --text-muted: #6b7280;
+            --accent: #ec4899;
+            --accent-glow: #f472b6;
+            --border: rgba(0, 0, 0, 0.08);
+        }
+
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
+            font-family: 'Arial', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(180deg, #ffffff 0%, var(--bg-light) 50%, var(--bg-dark) 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
+            color: var(--text);
+        }
+
+        .game-wrapper {
+            position: relative;
+        }
+
+        .hud {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(8px);
+        }
+
+        .hud-item {
+            min-width: 100px;
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.5);
+            text-align: center;
+        }
+
+        .hud-label {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .hud-value {
+            display: block;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--accent);
+            text-shadow: 0 0 8px rgba(236, 72, 153, 0.2);
+        }
+
+        .hud-item.timer .hud-value {
+            color: var(--text);
+        }
+
+        .hud-item.timer.low .hud-value {
+            color: var(--accent);
+            animation: timerPulse 0.6s ease-in-out;
+        }
+
+        @keyframes timerPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
         }
 
         #game-area {
             width: 600px;
             height: 400px;
-            border: 2px solid #333;
-            background: #fff;
+            border: 2px solid var(--border);
+            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
             position: relative;
             overflow: hidden;
+            border-radius: 12px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
         }
 
         #catch-button {
             position: absolute;
-            padding: 10px 20px;
-            background: #ff0000;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-glow));
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
             font-size: 16px;
-            transition: 0.1s;
+            font-weight: 700;
+            transition: 0.1s ease;
+            box-shadow: 0 6px 16px rgba(236, 72, 153, 0.35);
         }
 
-        #score {
-            margin-bottom: 20px;
-            font-size: 22px;
-            font-weight: bold;
+        #catch-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(236, 72, 153, 0.45);
+        }
+
+        .back-button {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 2;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--text);
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.15s ease;
+        }
+
+        .back-button:hover {
+            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .start-overlay {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 3;
+        }
+
+        .start-overlay.hidden {
+            display: none;
+        }
+
+        .overlay-card {
+            position: relative;
+            width: min(80%, 300px);
+            padding: 24px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.9);
+            text-align: center;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1);
+            animation: cardPulse 1.2s ease-in-out infinite;
+        }
+
+        .overlay-phrase {
+            font-size: 1.1rem;
+            margin-bottom: 16px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: var(--accent);
+            text-shadow: 0 0 12px rgba(236, 72, 153, 0.15);
+            animation: phraseFloat 1.2s ease-in-out infinite;
+        }
+
+        .overlay-count {
+            display: inline-grid;
+            place-items: center;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            font-size: 2.4rem;
+            font-weight: 800;
+            color: white;
+            border: 3px solid var(--accent);
+            background: linear-gradient(135deg, var(--accent), var(--accent-glow));
+            box-shadow: 0 0 20px rgba(236, 72, 153, 0.4);
+            text-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+            animation: countPop 0.6s ease-in-out infinite, countSpin 2s ease-in-out infinite;
+        }
+
+        @keyframes cardPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        @keyframes phraseFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-2px); }
+        }
+
+        @keyframes countPop {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes countSpin {
+            0%, 100% { box-shadow: 0 0 20px rgba(236, 72, 153, 0.4); }
+            50% { box-shadow: 0 0 28px rgba(236, 72, 153, 0.6); }
         }
     </style>
 </head>
-<body>
-    <div id="score">Score: 0</div>
-    <div id="game-area">
-        <button id="catch-button">Catch Me</button>
+<body style="overflow: hidden;">
+    <button class="back-button" onclick="location.href='catch_mouse_starting_screen.html'">Back to Menu</button>
+    <div class="game-wrapper">
+        <div class="hud">
+            <div class="hud-item">
+                <span class="hud-label">Score</span>
+                <span class="hud-value" id="score">0</span>
+            </div>
+            <div class="hud-item timer">
+                <span class="hud-label">Time</span>
+                <span class="hud-value" id="timerDisplay">60</span>
+            </div>
+        </div>
+        <div id="game-area">
+            <button id="catch-button">Catch Me</button>
+            <div class="start-overlay" id="startOverlay">
+                <div class="overlay-card">
+                    <div class="overlay-phrase" id="overlayPhrase"></div>
+                    <div class="overlay-count" id="overlayCount">3</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         const button = document.getElementById("catch-button");
         const gameArea = document.getElementById("game-area");
         const scoreDisplay = document.getElementById("score");
+        const timerDisplay = document.getElementById("timerDisplay");
+        const timerHudItem = document.querySelector(".hud-item.timer");
+        const startOverlay = document.getElementById("startOverlay");
+        const overlayPhrase = document.getElementById("overlayPhrase");
+        const overlayCount = document.getElementById("overlayCount");
+
+        const phrases = [
+            "Quick reflexes win!",
+            "Ready to catch?",
+            "Don't blink!",
+            "Speed matters here.",
+            "Let's get clicking!"
+        ];
 
         let score = 0;
+        let timeLeft = 60;
+        let isGameActive = false;
+        let timerInterval;
 
         function moveButton() {
+            if (!isGameActive) return;
+            
             const areaWidth = gameArea.clientWidth;
             const areaHeight = gameArea.clientHeight;
             const btnWidth = button.offsetWidth;
@@ -70,20 +272,81 @@
             button.style.top = randomY + "px";
         }
 
-		button.addEventListener("keydown", (event) => {
-			event.preventDefault(); // Blocks Enter and Space from triggering click
-		});
-		
-        button.addEventListener("click", () => {
+        button.addEventListener("click", (event) => {
+            if (!isGameActive) return;
+            event.stopPropagation();
             score++;
-            scoreDisplay.textContent = `Score: ${score}`;
+            scoreDisplay.textContent = String(score);
             moveButton();
         });
-		
 
-        setInterval(moveButton, 1500);
+        gameArea.addEventListener("click", (event) => {
+            if (!isGameActive) return;
+            // If the click wasn't on the button, subtract a point
+            if (event.target !== button) {
+                score--;
+                scoreDisplay.textContent = String(score);
+            }
+        });
 
-        moveButton();
+        button.addEventListener("keydown", (event) => {
+            event.preventDefault();
+        });
+
+        function updateTimer() {
+            if (!isGameActive) return;
+
+            timeLeft--;
+            timerDisplay.textContent = String(timeLeft);
+
+            if (timeLeft <= 10 && timeLeft > 0) {
+                timerHudItem.classList.add("low");
+            } else {
+                timerHudItem.classList.remove("low");
+            }
+
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            isGameActive = false;
+            clearInterval(timerInterval);
+            sessionStorage.setItem('catchMouseScore', String(score));
+            setTimeout(() => {
+                location.href = 'catch_mouse_score_screen.html';
+            }, 300);
+        }
+
+        function startCountdown() {
+            let count = 3;
+
+            overlayPhrase.textContent = phrases[Math.floor(Math.random() * phrases.length)];
+            overlayCount.textContent = String(count);
+
+            const countdownInterval = setInterval(() => {
+                count--;
+
+                if (count > 0) {
+                    overlayCount.textContent = String(count);
+                    return;
+                }
+
+                overlayCount.textContent = "GO";
+                clearInterval(countdownInterval);
+
+                setTimeout(() => {
+                    isGameActive = true;
+                    startOverlay.classList.add("hidden");
+                    timerInterval = setInterval(updateTimer, 1000);
+                    setInterval(moveButton, 1200);
+                    moveButton();
+                }, 300);
+            }, 1000);
+        }
+
+        startCountdown();
     </script>
 </body>
 </html>
