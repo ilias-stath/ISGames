@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Snake — Start</title>
+  <style>
+    :root{
+      --green-dark:#083e26;
+      --green-mid:#0f7a4c;
+      --green-light:#dff7e8;
+      --brown:#7a5230;
+      --red:#ef4444;
+      --text:#eaf8f0;
+      --muted:#cfeee0;
+      --accent:#0fb670;
+      --panel:rgba(255,255,255,0.02);
+      --border:rgba(6,40,28,0.06);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:grid;place-items:center;font-family: 'Arial', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;color:var(--text);
+      background:
+        radial-gradient(circle at 12% 18%, rgba(15,182,112,0.14), transparent 28%),
+        radial-gradient(circle at 85% 80%, rgba(122,82,48,0.06), transparent 22%),
+        linear-gradient(135deg, #8f502f, var(--green-mid) 55%, #8f502f);
+    }
+    .panel{width:min(92vw,520px);padding:36px;border-radius:18px;background:linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.28));border:1px solid rgba(255,255,255,0.25);box-shadow:0 18px 50px rgba(0,0,0,0.15);text-align:center}
+    h1{margin:0 0 8px;font-size:2.2rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--text)}
+    p{margin:0 0 18px;color:var(--muted)}
+    .buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+    .btn{border:0;padding:12px 18px;border-radius:12px;font-weight:700;cursor:pointer;font-size:1rem;transition:transform .12s ease,box-shadow .12s ease}
+    .btn:focus{outline:2px solid rgba(15,182,112,0.14)}
+    .start{background:linear-gradient(135deg,var(--accent),#34d399);color:#ffffff;box-shadow:0 6px 20px rgba(122,82,48,0.06)}
+    .back{background:transparent;border:1px solid var(--border);color:var(--text)}
+    .btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(122,82,48,0.06)}
+    .hint{margin-top:14px;color:var(--muted);font-size:0.92rem}
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <h1>Snake</h1>
+    <p>Classic snake — eat apples to grow. Edges wrap around; avoid hitting yourself.</p>
+    <div class="buttons">
+      <button class="btn start" id="startBtn">Start Game</button>
+      <button class="btn back" id="homeBtn">Back to Home</button>
+    </div>
+    <div class="hint" id="catchPhrase"></div>
+  </main>
+
+  <script>
+    const phrases = [
+      'Only a long snake is a good snake.',
+      'One apple at a time.',
+      'Grow, eat, repeat. Wait the sequence is wrong.',
+      'Eat apples, avoid yourself.',
+      'Reflexes and planning win.'
+    ];
+    document.getElementById('catchPhrase').textContent = phrases[Math.floor(Math.random()*phrases.length)];
+
+    document.getElementById('startBtn').addEventListener('click', ()=>{
+      location.href = 'snake_game.html';
+    });
+
+    document.getElementById('homeBtn').addEventListener('click', ()=>{
+      location.href = '../index.html';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Snake Game</title>
+  <style>
+      :root{
+        --green-dark:#083e26;
+        --green-mid:#0f7a4c;
+        --green-light:#dff7e8;
+        --brown:#7a5230;
+        --red:#ef4444;
+        --text:#eaf8f0;
+        --muted:#cfeee0;
+        --accent:#0fb670;
+        --apple:#ef4444;
+        --panel:rgba(255,255,255,0.02);
+        --border:rgba(6,40,28,0.06);
+      }
+
+      body{margin:0;font-family: 'Arial', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;color:var(--text);overflow:hidden; background:
+        radial-gradient(circle at 12% 18%, rgba(15,182,112,0.14), transparent 28%),
+        radial-gradient(circle at 85% 80%, rgba(122,82,48,0.06), transparent 22%),
+        linear-gradient(135deg, #8f502f, var(--green-mid) 55%, #8f502f);}
+    .back-button{position:fixed;top:16px;left:16px;z-index:2;padding:10px 14px;border:1px solid rgba(255,255,255,0.15);border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.08));color:var(--text);font-weight:700;cursor:pointer}
+    .hud{display:flex;gap:12px;margin-bottom:12px;padding:12px 14px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.08));border:1px solid rgba(255,255,255,0.15);align-items:center;box-shadow:0 8px 24px rgba(0,0,0,0.1)}
+    .hud-item{padding:8px 12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.08));text-align:center}
+    .hud-label{display:block;font-size:0.75rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase}
+    .hud-value{display:block;font-size:1.6rem;font-weight:800;color:var(--accent)}
+    #game-area{width:640px;height:480px;border-radius:12px;overflow:hidden;border:2px solid rgba(255,255,255,0.04);box-shadow:0 10px 30px rgba(0,0,0,0.08);background:linear-gradient(135deg, rgba(10,60,30,0.06) 0%, rgba(10,60,30,0.02) 100%);position:relative}
+    canvas{display:block;background:transparent}
+    .start-overlay{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(180deg, rgba(10,60,30,0.18), rgba(10,60,30,0.12));z-index:3}
+    .start-overlay.hidden{display:none}
+    .overlay-card{padding:24px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.08));border:1px solid rgba(255,255,255,0.15);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 12px 36px rgba(0,0,0,0.08)}
+    .overlay-count{width:80px;height:80px;border-radius:50%;display:grid;place-items:center;font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,var(--accent),#34d399);color:#fff}
+  </style>
+</head>
+<body>
+  <button class="back-button" onclick="location.href='snake_start.html'">Back to Menu</button>
+    <div class="hud">
+    <div class="hud-item">
+      <span class="hud-label">Score</span>
+      <span class="hud-value" id="score">0</span>
+    </div>
+  </div>
+
+  <div id="game-area">
+    <canvas id="canvas" width="640" height="480"></canvas>
+
+    <div class="start-overlay" id="startOverlay">
+      <div class="overlay-card">
+        <div style="margin-bottom:12px;font-weight:700;color:var(--accent)" id="overlayPhrase">Get Ready</div>
+        <div class="overlay-count" id="overlayCount">3</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const scoreDisplay = document.getElementById('score');
+    const startOverlay = document.getElementById('startOverlay');
+    const overlayCount = document.getElementById('overlayCount');
+    const overlayPhrase = document.getElementById('overlayPhrase');
+
+    const catchphrases = [
+      'Grow long and thrive.',
+      'Careful not to eat too many, your tummy will hurt.',
+      'Avoid the edges or not.',
+      'Eat apples, avoid yourself.',
+      'Reflexes and planning win.'
+    ];
+
+    const COLS = 32; // grid columns (640 / 20)
+    const ROWS = 24; // grid rows (480 / 20)
+    const CELL = 20;
+
+    let snake = [
+      {x: Math.floor(COLS/2), y: Math.floor(ROWS/2)},
+      {x: Math.floor(COLS/2) - 1, y: Math.floor(ROWS/2)},
+      {x: Math.floor(COLS/2) - 2, y: Math.floor(ROWS/2)}
+    ];
+    let dir = {x:1, y:0};
+    let nextDir = {x:1, y:0};
+    let apple = null;
+    let score = 0;
+    let isGameActive = false;
+    let moveInterval = null;
+
+    function placeApple(){
+      let spot;
+      while(true){
+        spot = {x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS)};
+        if(!snake.some(s=>s.x===spot.x && s.y===spot.y)) break;
+      }
+      apple = spot;
+    }
+
+    function draw(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+        // brown dirt background with static texture
+        const bgGrad = ctx.createLinearGradient(0,0,0,canvas.height);
+        bgGrad.addColorStop(0, '#a0714f');
+        bgGrad.addColorStop(1, '#8b6a47');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        // static dirt texture: deterministic dark spots
+        ctx.save();
+        ctx.globalAlpha = 0.08;
+        ctx.fillStyle = '#3d2817';
+        for(let gx = 0; gx < COLS; gx++){
+          for(let gy = 0; gy < ROWS; gy++){
+            // deterministic hash based on grid position
+            const seed = (gx * 73856093 ^ gy * 19349663) >>> 0;
+            const rand = ((seed * 1103515245 + 12345) >>> 16) % 100;
+            if(rand < 30){
+              const x = gx * CELL + (CELL/2);
+              const y = gy * CELL + (CELL/2);
+              const size = ((seed * 1103515245 + 12345) >>> 16) % 6 + 1.5;
+              ctx.beginPath();
+              ctx.arc(x, y, size, 0, Math.PI*2);
+              ctx.fill();
+            }
+          }
+        }
+        ctx.restore();
+
+      // apple
+      if(apple){
+          ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--apple') || '#ef4444';
+          const cx = apple.x * CELL + CELL/2;
+          const cy = apple.y * CELL + CELL/2;
+          const r = CELL*0.38;
+          ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+          // small stem/leaf
+          ctx.fillStyle = 'rgba(10,90,50,0.9)';
+          ctx.beginPath(); ctx.ellipse(cx + r*0.28, cy - r*0.6, r*0.2, r*0.12, -Math.PI/6, 0, Math.PI*2); ctx.fill();
+      }
+
+      // snake
+      for(let i=0;i<snake.length;i++){
+        const s = snake[i];
+        const x = s.x*CELL, y = s.y*CELL;
+        const grad = ctx.createLinearGradient(x,y,x+CELL,y+CELL);
+          if(i===0){
+            grad.addColorStop(0, '#044d31');
+            grad.addColorStop(1, '#0fa97a');
+          } else {
+            grad.addColorStop(0, '#0b7a50');
+            grad.addColorStop(1, '#12c28a');
+          }
+        ctx.fillStyle = grad;
+        ctx.fillRect(x+1, y+1, CELL-2, CELL-2);
+          // subtle earth-toned outline
+          ctx.strokeStyle = 'rgba(122,82,48,0.18)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x+0.5, y+0.5, CELL-1, CELL-1);
+        }
+
+        }
+
+    function moveSnake(){
+      dir = nextDir;
+      const head = snake[0];
+      const nx = (head.x + dir.x + COLS) % COLS;
+      const ny = (head.y + dir.y + ROWS) % ROWS;
+
+      // collision with self?
+      if(snake.some(seg => seg.x===nx && seg.y===ny)){
+        endGame();
+        return;
+      }
+
+      snake.unshift({x:nx, y:ny});
+
+      // ate apple?
+      if(apple && nx===apple.x && ny===apple.y){
+        score++;
+        scoreDisplay.textContent = String(score);
+        placeApple();
+      } else {
+        snake.pop();
+      }
+
+      draw();
+    }
+
+    function endGame(){
+      isGameActive = false;
+      clearInterval(moveInterval);
+      sessionStorage.setItem('snakeScore', String(score));
+      setTimeout(()=> location.href = 'snake_score.html', 300);
+    }
+
+    // input
+    window.addEventListener('keydown', (e)=>{
+      const key = e.key;
+      if(!isGameActive) return;
+      if(key === 'ArrowUp' || key==='w' || key==='W'){
+        if(dir.y!==1) nextDir = {x:0,y:-1};
+      } else if(key==='ArrowDown' || key==='s' || key==='S'){
+        if(dir.y!==-1) nextDir = {x:0,y:1};
+      } else if(key==='ArrowLeft' || key==='a' || key==='A'){
+        if(dir.x!==1) nextDir = {x:-1,y:0};
+      } else if(key==='ArrowRight' || key==='d' || key==='D'){
+        if(dir.x!==-1) nextDir = {x:1,y:0};
+      }
+    });
+
+    function startCountdown(){
+      let count = 3;
+      overlayPhrase.textContent = catchphrases[Math.floor(Math.random() * catchphrases.length)];
+      overlayCount.textContent = String(count);
+      const countdown = setInterval(()=>{
+        count--;
+        if(count>0){ overlayCount.textContent = String(count); return; }
+        overlayCount.textContent = 'GO';
+        clearInterval(countdown);
+        setTimeout(()=>{
+          startOverlay.classList.add('hidden');
+          isGameActive = true;
+          placeApple();
+          moveInterval = setInterval(moveSnake, 120);
+        }, 250);
+      },1000);
+    }
+
+    // initialize drawing grid + start
+    draw();
+    startCountdown();
+
+    // prevent arrow scrolling
+    window.addEventListener('keydown', function(e){
+      if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+    });
+
+  </script>
+</body>
+</html>
