@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pong Score</title>
+<style>
+	:root {
+		color-scheme: dark;
+		--panel: rgba(8, 12, 24, 0.88);
+		--panel-border: rgba(255, 255, 255, 0.14);
+		--text: #f5f7ff;
+		--muted: #a8b2c7;
+		--green: #69f2a4;
+		--green-soft: rgba(105, 242, 164, 0.14);
+		--red: #ff6f6f;
+		--red-soft: rgba(255, 111, 111, 0.14);
+		--accent: #8ab4ff;
+	}
+
+	* {
+		box-sizing: border-box;
+	}
+
+	body {
+		margin: 0;
+		min-height: 100vh;
+		font-family: Arial, sans-serif;
+		color: var(--text);
+		background:
+			radial-gradient(circle at top, rgba(138, 180, 255, 0.18), transparent 26%),
+			radial-gradient(circle at 20% 80%, rgba(105, 242, 164, 0.12), transparent 22%),
+			radial-gradient(circle at 80% 75%, rgba(255, 111, 111, 0.12), transparent 22%),
+			linear-gradient(135deg, #050816, #111a33 52%, #050816);
+		overflow: hidden;
+		display: grid;
+		place-items: center;
+	}
+
+	.panel {
+		width: min(94vw, 760px);
+		padding: 30px 28px 26px;
+		border: 1px solid var(--panel-border);
+		border-radius: 28px;
+		background: var(--panel);
+		box-shadow: 0 28px 80px rgba(0, 0, 0, 0.5);
+		backdrop-filter: blur(14px);
+		text-align: center;
+	}
+
+	h1 {
+		margin: 0;
+		font-size: 1rem;
+		letter-spacing: 0.32em;
+		text-transform: uppercase;
+		color: var(--muted);
+	}
+
+	.winner-wrap {
+		margin-top: 6px;
+		display: grid;
+		place-items: center;
+	}
+
+	.winner-arc {
+		width: min(100%, 620px);
+		height: 190px;
+		overflow: visible;
+	}
+
+	.score-meta {
+		margin-top: 8px;
+		font-size: 0.95rem;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--muted);
+	}
+
+	.mode-badge {
+		margin-top: 10px;
+		display: inline-block;
+		padding: 8px 14px;
+		border-radius: 999px;
+		font-size: 0.78rem;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		border: 1px solid rgba(255, 255, 255, 0.16);
+		background: rgba(255, 255, 255, 0.05);
+		color: #d9e5ff;
+	}
+
+	.scoreboard {
+		margin: 24px auto 22px;
+		width: min(100%, 640px);
+		display: grid;
+		grid-template-columns: 1fr auto 1fr;
+		gap: 14px;
+		align-items: stretch;
+	}
+
+	.score-card {
+		padding: 22px 18px 18px;
+		border-radius: 22px;
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		background: rgba(255, 255, 255, 0.04);
+		text-align: left;
+	}
+
+	.score-card.player {
+		box-shadow: inset 0 0 0 1px var(--green-soft);
+	}
+
+	.score-card.ai {
+		box-shadow: inset 0 0 0 1px var(--red-soft);
+	}
+
+	.score-label {
+		font-size: 0.82rem;
+		letter-spacing: 0.22em;
+		text-transform: uppercase;
+		color: var(--muted);
+		margin-bottom: 10px;
+	}
+
+	.score-value {
+		font-size: clamp(3rem, 7vw, 5rem);
+		font-weight: 800;
+		line-height: 0.95;
+	}
+
+	.score-card.player .score-value {
+		color: var(--green);
+	}
+
+	.score-card.ai .score-value {
+		color: var(--red);
+	}
+
+	.vs {
+		align-self: center;
+		padding: 12px 16px;
+		border-radius: 999px;
+		border: 1px solid rgba(255, 255, 255, 0.16);
+		background: rgba(255, 255, 255, 0.06);
+		font-size: 0.88rem;
+		font-weight: 800;
+		letter-spacing: 0.18em;
+		color: var(--accent);
+		text-transform: uppercase;
+		align-self: center;
+		justify-self: center;
+	}
+
+	.buttons {
+		margin: 10px auto 0;
+		width: min(100%, 420px);
+		display: grid;
+		gap: 12px;
+	}
+
+	.button-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 12px;
+	}
+
+	button {
+		appearance: none;
+		border: 0;
+		border-radius: 12px;
+		padding: 14px 18px;
+		font-size: 1rem;
+		font-weight: 700;
+		cursor: pointer;
+		color: #10131a;
+		background: #ffffff;
+		transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+	}
+
+	button:hover {
+		transform: translateY(-1px);
+		filter: brightness(1.05);
+		box-shadow: 0 10px 24px rgba(138, 180, 255, 0.2);
+	}
+
+	.secondary {
+		background: rgba(255, 255, 255, 0.09);
+		color: #eef2ff;
+		border: 1px solid rgba(255, 255, 255, 0.12);
+	}
+
+	.secondary:hover {
+		box-shadow: 0 10px 24px rgba(255, 255, 255, 0.14);
+	}
+
+	@media (max-width: 640px) {
+		.panel {
+			padding: 22px 16px 18px;
+		}
+
+		.scoreboard {
+			grid-template-columns: 1fr;
+		}
+
+		.vs {
+			justify-self: stretch;
+		}
+
+		.button-row {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>
+</head>
+<body>
+<main class="panel">
+	<h1>Match Over</h1>
+	<div class="winner-wrap">
+		<svg class="winner-arc" viewBox="0 0 640 190" aria-hidden="true">
+			<defs>
+				<path id="winnerPath" d="M 80 146 Q 320 18 560 146"></path>
+			</defs>
+			<text id="winnerText" fill="#69f2a4" font-size="54" font-weight="800" letter-spacing="6">
+				<textPath id="winnerPathText" href="#winnerPath" startOffset="50%" text-anchor="middle"></textPath>
+			</text>
+		</svg>
+		<div class="score-meta" id="scoreMeta">Final Score</div>
+		<div class="mode-badge" id="modeBadge">Mode: Easy</div>
+	</div>
+	<div class="scoreboard" aria-label="Final score board">
+		<div class="score-card player">
+			<div class="score-label" id="leftScoreLabel">Player</div>
+			<div class="score-value" id="playerScoreValue">0</div>
+		</div>
+		<div class="vs">VS</div>
+		<div class="score-card ai">
+			<div class="score-label" id="rightScoreLabel">AI</div>
+			<div class="score-value" id="aiScoreValue">0</div>
+		</div>
+	</div>
+	<div class="buttons">
+		<div class="button-row">
+			<button id="playAgainButton">Play Again</button>
+			<button class="secondary" id="menuButton">Go to Menu</button>
+		</div>
+	</div>
+</main>
+<script>
+if (sessionStorage.getItem('pongResultAccess') !== 'true') {
+	location.replace('pong_starting_screen.html');
+}
+
+const playerScore = Number(sessionStorage.getItem('pongPlayerScore') ?? '0');
+const aiScore = Number(sessionStorage.getItem('pongAiScore') ?? '0');
+const lastMode = sessionStorage.getItem('pongLastMode') ?? 'easy';
+
+const winnerPathText = document.getElementById('winnerPathText');
+const winnerText = document.getElementById('winnerText');
+const scoreMeta = document.getElementById('scoreMeta');
+const modeBadge = document.getElementById('modeBadge');
+const leftScoreLabel = document.getElementById('leftScoreLabel');
+const rightScoreLabel = document.getElementById('rightScoreLabel');
+const playerScoreValue = document.getElementById('playerScoreValue');
+const aiScoreValue = document.getElementById('aiScoreValue');
+const playAgainButton = document.getElementById('playAgainButton');
+const menuButton = document.getElementById('menuButton');
+
+playerScoreValue.textContent = String(playerScore);
+aiScoreValue.textContent = String(aiScore);
+
+const isPlayerWinner = playerScore > aiScore;
+const isAiWinner = aiScore > playerScore;
+const isPvp = lastMode === '2player';
+const modeLabelMap = {
+	easy: 'Easy Mode',
+	normal: 'Normal Mode',
+	hard: 'Hard Mode',
+	'2player': 'PvP Mode'
+};
+
+if (isPvp) {
+	leftScoreLabel.textContent = 'Player 1';
+	rightScoreLabel.textContent = 'Player 2';
+}
+
+const headline = isPvp
+	? (isPlayerWinner ? 'PLAYER 1 WON' : isAiWinner ? 'PLAYER 2 WON' : 'TIE GAME')
+	: (isPlayerWinner ? 'PLAYER WON' : isAiWinner ? 'AI WON' : 'TIE GAME');
+const headlineColor = isPlayerWinner ? '#69f2a4' : isAiWinner ? '#ff6f6f' : '#8ab4ff';
+
+winnerPathText.textContent = headline;
+winnerText.setAttribute('fill', headlineColor);
+modeBadge.textContent = `Mode: ${modeLabelMap[lastMode] ?? 'Custom Mode'}`;
+
+scoreMeta.textContent = isPlayerWinner
+	? `Victory by ${playerScore - aiScore}`
+	: isAiWinner
+		? `Defeat by ${aiScore - playerScore}`
+		: 'Even match';
+
+playAgainButton.addEventListener('click', () => {
+	sessionStorage.setItem('pongAccess', lastMode);
+	location.href = `pong_game_${lastMode}.html`;
+});
+
+menuButton.addEventListener('click', () => {
+	location.href = 'pong_starting_screen.html';
+});
+
+sessionStorage.removeItem('pongResultAccess');
+sessionStorage.removeItem('pongPlayerScore');
+sessionStorage.removeItem('pongAiScore');
+sessionStorage.removeItem('pongLastMode');
+</script>
+</body>
+</html>

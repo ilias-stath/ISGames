@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pong Menu</title>
+<style>
+	:root {
+		color-scheme: dark;
+		--bg: #0a1020;
+		--panel: rgba(9, 16, 32, 0.86);
+		--panel-border: rgba(255, 255, 255, 0.14);
+		--text: #f4f7ff;
+		--muted: #a7b0c5;
+		--accent: #7cf7c2;
+		--accent-2: #7ba7ff;
+		--danger: #ff8f8f;
+	}
+
+	* {
+		box-sizing: border-box;
+	}
+
+	body {
+		margin: 0;
+		min-height: 100vh;
+		display: grid;
+		place-items: center;
+		font-family: Arial, sans-serif;
+		color: var(--text);
+		background:
+			radial-gradient(circle at top, rgba(123, 167, 255, 0.18), transparent 35%),
+			radial-gradient(circle at bottom left, rgba(124, 247, 194, 0.12), transparent 30%),
+			linear-gradient(135deg, #050816, #101a32 55%, #050816);
+		overflow: hidden;
+	}
+
+	.panel {
+		width: min(92vw, 440px);
+		padding: 32px;
+		border: 1px solid var(--panel-border);
+		border-radius: 24px;
+		background: var(--panel);
+		box-shadow: 0 28px 70px rgba(0, 0, 0, 0.45);
+		backdrop-filter: blur(14px);
+	}
+
+	h1 {
+		margin: 0 0 10px;
+		font-size: 2.4rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+
+	p {
+		margin: 0 0 22px;
+		color: var(--muted);
+		line-height: 1.5;
+	}
+
+	.buttons {
+		display: grid;
+		gap: 12px;
+	}
+
+	button {
+		appearance: none;
+		border: 0;
+		border-radius: 14px;
+		padding: 15px 18px;
+		font-size: 1rem;
+		font-weight: 700;
+		cursor: pointer;
+		color: #07111f;
+		transition: transform 0.15s ease, filter 0.15s ease;
+	}
+
+	button:hover {
+		transform: translateY(-1px);
+		filter: brightness(1.05);
+	}
+
+	.easy {
+		background: linear-gradient(135deg, var(--accent), #d6ffe8);
+	}
+
+	.normal {
+		background: linear-gradient(135deg, #ffd37c, #ffeac1);
+	}
+
+	.hard {
+		background: linear-gradient(135deg, var(--danger), #ffd0d0);
+	}
+
+	.pvp {
+		background: linear-gradient(135deg, #8edbff, #d7f0ff);
+	}
+
+	.hint {
+		margin-top: 16px;
+		font-size: 0.92rem;
+		color: var(--muted);
+		text-align: center;
+	}
+</style>
+</head>
+<body>
+<main class="panel">
+	<h1>Pong</h1>
+	<p>Select a difficulty to start the game.</p>
+	<div class="buttons">
+		<button class="easy" onclick="startGame('easy')">Easy</button>
+		<button class="normal" onclick="startGame('normal')">Normal</button>
+		<button class="hard" onclick="startGame('hard')">Hard</button>
+		<button class="pvp" onclick="startGame('2player')">PvP</button>
+	</div>
+	<div class="hint" id="menuCatchphrase"></div>
+</main>
+<script>
+const catchphrases = [
+	"Two paddles enter. But only one will leave.",
+	"A game of pixels .... and pixels.",
+	"May the bounce be with you.",
+	"Don't miss the ball. Seriously.",
+	"I coded the physics. But don't blame me if you miss.",
+	"The ball is round. The paddle is flat. Figure it out.",
+	"Try not to hit the 'Exit' button in frustration.",
+    "Insert skill to continue.",
+    "Calculated. (Hopefully.)"
+];
+
+const menuCatchphrase = document.getElementById('menuCatchphrase');
+const randomIndex = Math.floor(Math.random() * catchphrases.length);
+menuCatchphrase.textContent = catchphrases[randomIndex];
+
+function startGame(difficulty) {
+	sessionStorage.setItem('pongAccess', difficulty);
+	location.href = `pong_game_${difficulty}.html`;
+}
+</script>
+</body>
+</html>

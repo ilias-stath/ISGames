@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pong Game</title>
+<style>
+    body {
+        margin: 0;
+        background: #111;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        color: white;
+        font-family: Arial, sans-serif;
+    }
+    canvas {
+        background: #000;
+        border: 2px solid #fff;
+    }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="500"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// Paddle settings
+const paddleHeight = 100;
+const paddleWidth = 10;
+let playerY = canvas.height / 2 - paddleHeight / 2;
+let aiY = canvas.height / 2 - paddleHeight / 2;
+const paddleSpeed = 7;
+
+// Ball settings
+let ballX = canvas.width / 2;
+let ballY = canvas.height / 2;
+let ballSize = 10;
+let ballSpeedX = 5;
+let ballSpeedY = 5;
+
+// Score
+let playerScore = 0;
+let aiScore = 0;
+
+// Timer
+let timeLeft = 60;
+
+// Player input
+let upPressed = false;
+let downPressed = false;
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowUp") upPressed = true;
+    if (e.key === "ArrowDown") downPressed = true;
+});
+
+document.addEventListener("keyup", (e) => {
+    if (e.key === "ArrowUp") upPressed = false;
+    if (e.key === "ArrowDown") downPressed = false;
+});
+
+function drawPaddles() {
+    ctx.fillStyle = "white";
+    ctx.fillRect(10, playerY, paddleWidth, paddleHeight);
+    ctx.fillRect(canvas.width - 20, aiY, paddleWidth, paddleHeight);
+}
+
+function drawBall() {
+    ctx.fillStyle = "white";
+    ctx.fillRect(ballX, ballY, ballSize, ballSize);
+}
+
+function drawScore() {
+    ctx.font = "20px Arial";
+    ctx.fillText(`Player: ${playerScore}`, 20, 30);
+    ctx.fillText(`AI: ${aiScore}`, canvas.width - 120, 30);
+}
+
+function drawTimer() {
+    ctx.font = "20px Arial";
+    ctx.fillText(`Time: ${timeLeft}`, canvas.width / 2 - 40, 30);
+}
+
+function movePlayer() {
+    if (upPressed && playerY > 0) playerY -= paddleSpeed;
+    if (downPressed && playerY + paddleHeight < canvas.height) playerY += paddleSpeed;
+}
+
+function moveAI() {
+    const aiCenter = aiY + paddleHeight / 2;
+    if (aiCenter < ballY) aiY += 4;
+    else aiY -= 4;
+}
+
+function moveBall() {
+    ballX += ballSpeedX;
+    ballY += ballSpeedY;
+
+    // Bounce top/bottom
+    if (ballY <= 0 || ballY + ballSize >= canvas.height) {
+        ballSpeedY *= -1;
+    }
+
+    // Player paddle collision
+    if (
+        ballX <= 20 &&
+        ballY + ballSize >= playerY &&
+        ballY <= playerY + paddleHeight
+    ) {
+        ballSpeedX *= -1;
+    }
+
+    // AI paddle collision
+    if (
+        ballX + ballSize >= canvas.width - 20 &&
+        ballY + ballSize >= aiY &&
+        ballY <= aiY + paddleHeight
+    ) {
+        ballSpeedX *= -1;
+    }
+
+    // Scoring
+    if (ballX < 0) {
+        aiScore++;
+        resetBall();
+    }
+    if (ballX > canvas.width) {
+        playerScore++;
+        resetBall();
+    }
+}
+
+function resetBall() {
+    ballX = canvas.width / 2;
+    ballY = canvas.height / 2;
+    ballSpeedX = -ballSpeedX;
+}
+
+function updateTimer() {
+    timeLeft--;
+    if (timeLeft <= 0) {
+        endGame();
+    }
+}
+
+function endGame() {
+    sessionStorage.setItem('pongResultAccess', 'true');
+    sessionStorage.setItem('pongLastMode', 'easy');
+    sessionStorage.setItem('pongPlayerScore', String(playerScore));
+    sessionStorage.setItem('pongAiScore', String(aiScore));
+    location.replace('pong_score_sreeen.html');
+}
+
+setInterval(updateTimer, 1000);
+
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawPaddles();
+    drawBall();
+    movePlayer();
+    moveAI();
+    moveBall();
+    drawScore();
+    drawTimer();
+
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>

@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pong Game</title>
+<style>
+    body {
+        margin: 0;
+        background:
+			radial-gradient(circle at top, rgba(138, 180, 255, 0.18), transparent 26%),
+			radial-gradient(circle at 20% 80%, rgba(105, 242, 164, 0.12), transparent 22%),
+			radial-gradient(circle at 80% 75%, rgba(255, 111, 111, 0.12), transparent 22%),
+			linear-gradient(135deg, #050816, #111a33 52%, #050816);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        color: white;
+        font-family: Arial, sans-serif;
+    }
+    canvas {
+        background: #000;
+        border: 2px solid #fff;
+        transition: filter 0.3s ease;
+    }
+    canvas.blurred {
+        filter: blur(4px);
+    }
+    .game-wrapper {
+        position: relative;
+    }
+    .hud {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 14px;
+        padding: 12px 14px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 16px;
+        background: rgba(8, 12, 24, 0.72);
+        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28), inset 0 0 24px rgba(255, 255, 255, 0.04);
+        backdrop-filter: blur(12px);
+    }
+    .hud-item {
+        min-width: 150px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.05);
+    }
+    .hud-label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 0.72rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #a7b0c5;
+    }
+    .hud-value {
+        display: inline-block;
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        color: #f4f7ff;
+        text-shadow: 0 0 14px rgba(255, 255, 255, 0.12);
+    }
+    .hud-item.player .hud-value {
+        color: #69f2a4;
+    }
+    .hud-item.opponent .hud-value {
+        color: #ff6f6f;
+    }
+    .hud-item.timer .hud-value {
+        color: #ffffff;
+    }
+    .hud-item.timer.low .hud-value {
+        color: #ffd37c;
+    }
+    .hud-item.timer.tick .hud-value {
+        animation: timerPulse 0.55s ease-in-out;
+    }
+    .start-overlay {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        border-radius: 6px;
+        background:
+            radial-gradient(circle at center, rgba(138, 180, 255, 0.16), transparent 42%),
+            rgba(5, 8, 18, 0.58);
+        z-index: 3;
+    }
+    .start-overlay.hidden {
+        display: none;
+    }
+    .overlay-card {
+        position: relative;
+        overflow: hidden;
+        width: min(88%, 560px);
+        padding: 26px 24px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background:
+            linear-gradient(145deg, rgba(28, 39, 74, 0.92), rgba(9, 14, 30, 0.94));
+        text-align: center;
+        box-shadow:
+            0 22px 44px rgba(0, 0, 0, 0.45),
+            inset 0 0 30px rgba(138, 180, 255, 0.08),
+            0 0 0 1px rgba(255, 255, 255, 0.06);
+        animation: cardPulse 1.8s ease-in-out infinite, cardFloat 4s ease-in-out infinite;
+    }
+    .overlay-card::before,
+    .overlay-card::after {
+        content: "";
+        position: absolute;
+        inset: auto;
+        border-radius: 50%;
+        pointer-events: none;
+        filter: blur(2px);
+    }
+    .overlay-card::before {
+        width: 180px;
+        height: 180px;
+        left: -40px;
+        top: -70px;
+        background: radial-gradient(circle, rgba(138, 180, 255, 0.26), transparent 70%);
+        animation: orbDrift 5s ease-in-out infinite;
+    }
+    .overlay-card::after {
+        width: 140px;
+        height: 140px;
+        right: -45px;
+        bottom: -60px;
+        background: radial-gradient(circle, rgba(127, 242, 195, 0.18), transparent 70%);
+        animation: orbDrift 6.5s ease-in-out infinite reverse;
+    }
+    .overlay-phrase {
+        position: relative;
+        z-index: 1;
+        font-size: 1.18rem;
+        margin-bottom: 16px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: linear-gradient(90deg, #ffffff, #a8caff, #ffffff);
+        background-size: 220% 220%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-shadow:
+            0 0 18px rgba(168, 202, 255, 0.35),
+            0 0 42px rgba(138, 180, 255, 0.18);
+        animation: phraseShimmer 2.6s linear infinite, phraseFloat 1.6s ease-in-out infinite;
+    }
+    .overlay-count {
+        position: relative;
+        z-index: 1;
+        display: inline-grid;
+        place-items: center;
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        font-size: 3rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        color: #7ff2c3;
+        border: 1px solid rgba(127, 242, 195, 0.35);
+        background: radial-gradient(circle at 30% 25%, rgba(127, 242, 195, 0.24), rgba(8, 12, 24, 0.96));
+        box-shadow:
+            0 0 24px rgba(127, 242, 195, 0.28),
+            inset 0 0 24px rgba(127, 242, 195, 0.12);
+        text-shadow: 0 0 18px rgba(127, 242, 195, 0.65);
+        animation: countPop 0.9s ease-in-out infinite, countSpin 3.8s linear infinite;
+    }
+    @keyframes phraseShimmer {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 100% 50%; }
+    }
+    @keyframes cardPulse {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-2px); }
+    }
+    @keyframes cardFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+    }
+    @keyframes orbDrift {
+        0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+        50% { transform: translate(14px, -10px) scale(1.08); opacity: 1; }
+    }
+    @keyframes phraseFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-1px); }
+    }
+    @keyframes countPop {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.06); }
+    }
+    @keyframes countSpin {
+        0% { box-shadow: 0 0 24px rgba(127, 242, 195, 0.28), inset 0 0 24px rgba(127, 242, 195, 0.12); }
+        50% { box-shadow: 0 0 32px rgba(127, 242, 195, 0.38), inset 0 0 28px rgba(127, 242, 195, 0.18); }
+        100% { box-shadow: 0 0 24px rgba(127, 242, 195, 0.28), inset 0 0 24px rgba(127, 242, 195, 0.12); }
+    }
+    @keyframes timerPulse {
+        0%, 100% { transform: scale(1); text-shadow: 0 0 14px rgba(255, 211, 124, 0.18); }
+        50% { transform: scale(1.06); text-shadow: 0 0 22px rgba(255, 143, 143, 0.42); }
+    }
+    .back-button {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        z-index: 2;
+        padding: 10px 14px;
+        border: 0;
+        border-radius: 10px;
+        background: #fff;
+        color: #111;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+    }
+    .back-button:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.05);
+        box-shadow: 0 10px 24px rgba(138, 180, 255, 0.2);
+    }
+</style>
+</head>
+<body>
+<button class="back-button" onclick="location.href='pong_starting_screen.html'">Back to Menu</button>
+<div class="game-wrapper">
+    <div class="hud">
+        <div class="hud-item player">
+            <span class="hud-label">Player</span>
+            <span class="hud-value" id="playerScoreHud">0</span>
+        </div>
+        <div class="hud-item timer">
+            <span class="hud-label">Time</span>
+            <span class="hud-value" id="timerHud">60</span>
+        </div>
+        <div class="hud-item opponent">
+            <span class="hud-label">AI</span>
+            <span class="hud-value" id="opponentScoreHud">0</span>
+        </div>
+    </div>
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+    <div class="start-overlay" id="startOverlay">
+        <div class="overlay-card">
+            <div class="overlay-phrase" id="overlayPhrase"></div>
+            <div class="overlay-count" id="overlayCount">3</div>
+        </div>
+    </div>
+</div>
+
+<script>
+if (sessionStorage.getItem('pongAccess') !== 'hard') {
+    location.replace('pong_starting_screen.html');
+}
+
+sessionStorage.removeItem('pongAccess');
+
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const playerScoreHud = document.getElementById("playerScoreHud");
+const opponentScoreHud = document.getElementById("opponentScoreHud");
+const timerHud = document.getElementById("timerHud");
+const timerHudItem = document.querySelector(".hud-item.timer");
+const startOverlay = document.getElementById("startOverlay");
+const overlayPhrase = document.getElementById("overlayPhrase");
+const overlayCount = document.getElementById("overlayCount");
+const startPhrases = [
+    "PING! PONG! GO!",
+    "Ready, Set, BOUNCE!",
+    "Loading more pixels for you to miss...",
+    "Serve it up!",
+    "Keep your eyes on the square. It is the ball!",
+    "Defend your side!",
+    "Prepare for a paddle battle!"
+];
+let isGameActive = false;
+
+// Paddle settings
+const paddleHeight = 100;
+const paddleWidth = 10;
+let playerY = canvas.height / 2 - paddleHeight / 2;
+let aiY = canvas.height / 2 - paddleHeight / 2;
+const paddleSpeed = 7;
+
+// Ball settings
+const initialBallSpeed = 5;
+const ballSpeedStep = 0.3;
+const maxBallSpeed = 20;
+let ballX = canvas.width / 2;
+let ballY = canvas.height / 2;
+let ballSize = 10;
+let ballDirectionX = 1;
+let ballDirectionY = 1;
+let ballSpeed = initialBallSpeed;
+let ballSpeedX = ballSpeed * ballDirectionX;
+let ballSpeedY = ballSpeed * ballDirectionY;
+
+// Score
+let playerScore = 0;
+let aiScore = 0;
+
+// Timer
+let timeLeft = 60;
+
+// Player input
+let upPressed = false;
+let downPressed = false;
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowUp") upPressed = true;
+    if (e.key === "ArrowDown") downPressed = true;
+});
+
+document.addEventListener("keyup", (e) => {
+    if (e.key === "ArrowUp") upPressed = false;
+    if (e.key === "ArrowDown") downPressed = false;
+});
+
+function drawPaddles() {
+    const playerGradient = ctx.createLinearGradient(10, playerY, 20, playerY + paddleHeight);
+    playerGradient.addColorStop(0, "#ffffff");
+    playerGradient.addColorStop(0.5, "#b8ffe0");
+    playerGradient.addColorStop(1, "#69f2a4");
+
+    const aiGradient = ctx.createLinearGradient(canvas.width - 20, aiY, canvas.width - 10, aiY + paddleHeight);
+    aiGradient.addColorStop(0, "#ffffff");
+    aiGradient.addColorStop(0.5, "#ffb3b3");
+    aiGradient.addColorStop(1, "#ff6f6f");
+
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = "rgba(138, 180, 255, 0.35)";
+    ctx.fillStyle = playerGradient;
+    ctx.fillRect(10, playerY, paddleWidth, paddleHeight);
+
+    ctx.shadowColor = "rgba(127, 242, 195, 0.35)";
+    ctx.fillStyle = aiGradient;
+    ctx.fillRect(canvas.width - 20, aiY, paddleWidth, paddleHeight);
+    ctx.shadowBlur = 0;
+}
+
+function drawArena() {
+    const arenaGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    arenaGradient.addColorStop(0, "#08111f");
+    arenaGradient.addColorStop(0.5, "#050b16");
+    arenaGradient.addColorStop(1, "#08111f");
+
+    ctx.fillStyle = arenaGradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.14)";
+    ctx.lineWidth = 4;
+    ctx.setLineDash([14, 14]);
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2, 0);
+    ctx.lineTo(canvas.width / 2, canvas.height);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+}
+
+function drawBall() {
+    const ballGradient = ctx.createRadialGradient(
+        ballX + ballSize / 2,
+        ballY + ballSize / 2,
+        1,
+        ballX + ballSize / 2,
+        ballY + ballSize / 2,
+        18
+    );
+    ballGradient.addColorStop(0, "#ffffff");
+    ballGradient.addColorStop(0.35, "#ffeac1");
+    ballGradient.addColorStop(0.7, "#ffd37c");
+    ballGradient.addColorStop(1, "rgba(255, 211, 124, 0.08)");
+
+    ctx.shadowBlur = 16;
+    ctx.shadowColor = "rgba(255, 211, 124, 0.65)";
+    ctx.fillStyle = ballGradient;
+    ctx.fillRect(ballX, ballY, ballSize, ballSize);
+    ctx.shadowBlur = 0;
+}
+
+function updateHud() {
+    playerScoreHud.textContent = String(playerScore);
+    opponentScoreHud.textContent = String(aiScore);
+    timerHud.textContent = String(timeLeft);
+    timerHudItem.classList.toggle("low", timeLeft <= 10);
+}
+
+function movePlayer() {
+    if (upPressed && playerY > 0) playerY -= paddleSpeed;
+    if (downPressed && playerY + paddleHeight < canvas.height) playerY += paddleSpeed;
+}
+
+function moveAI() {
+    const aiCenter = aiY + paddleHeight / 2;
+    if (aiCenter < ballY) aiY += 4;
+    else aiY -= 4;
+}
+
+function updateBallSpeed() {
+    ballSpeedX = ballSpeed * ballDirectionX;
+    ballSpeedY = ballSpeed * ballDirectionY;
+}
+
+function increaseBallSpeed() {
+    ballSpeed = Math.min(ballSpeed + ballSpeedStep, maxBallSpeed);
+    updateBallSpeed();
+}
+
+function moveBall() {
+    ballX += ballSpeedX;
+    ballY += ballSpeedY;
+
+    // Bounce top/bottom
+    if (ballY <= 0 || ballY + ballSize >= canvas.height) {
+        ballDirectionY *= -1;
+        updateBallSpeed();
+    }
+
+    // Player paddle collision
+    if (
+        ballX <= 20 &&
+        ballY + ballSize >= playerY &&
+        ballY <= playerY + paddleHeight
+    ) {
+        ballDirectionX = 1;
+        increaseBallSpeed();
+    }
+
+    // AI paddle collision
+    if (
+        ballX + ballSize >= canvas.width - 20 &&
+        ballY + ballSize >= aiY &&
+        ballY <= aiY + paddleHeight
+    ) {
+        ballDirectionX = -1;
+        increaseBallSpeed();
+    }
+
+    // Scoring
+    if (ballX < 0) {
+        aiScore++;
+        resetBall();
+    }
+    if (ballX > canvas.width) {
+        playerScore++;
+        resetBall();
+    }
+}
+
+function resetBall() {
+    ballX = canvas.width / 2;
+    ballY = canvas.height / 2;
+    ballSpeed = initialBallSpeed;
+    ballDirectionX = -ballDirectionX;
+    ballDirectionY = Math.random() < 0.5 ? -1 : 1;
+    updateBallSpeed();
+}
+
+function updateTimer() {
+    if (!isGameActive) return;
+
+    timeLeft--;
+
+    if (timeLeft <= 10 && timeLeft > 0) {
+        timerHudItem.classList.remove("tick");
+        void timerHudItem.offsetWidth;
+        timerHudItem.classList.add("tick");
+    } else {
+        timerHudItem.classList.remove("tick");
+    }
+
+    if (timeLeft <= 0) {
+        endGame();
+    }
+}
+
+function endGame() {
+    sessionStorage.setItem('pongResultAccess', 'true');
+    sessionStorage.setItem('pongLastMode', 'hard');
+    sessionStorage.setItem('pongPlayerScore', String(playerScore));
+    sessionStorage.setItem('pongAiScore', String(aiScore));
+    location.replace('pong_score_sreeen.html');
+}
+
+setInterval(updateTimer, 1000);
+
+function startCountdown() {
+    let count = 3;
+
+    canvas.classList.add("blurred");
+    overlayPhrase.textContent = startPhrases[Math.floor(Math.random() * startPhrases.length)];
+    overlayCount.textContent = String(count);
+
+    const countdownInterval = setInterval(() => {
+        count--;
+
+        if (count > 0) {
+            overlayCount.textContent = String(count);
+            return;
+        }
+
+        overlayCount.textContent = "GO";
+        clearInterval(countdownInterval);
+
+        setTimeout(() => {
+            isGameActive = true;
+            startOverlay.classList.add("hidden");
+            canvas.classList.remove("blurred");
+        }, 450);
+    }, 1000);
+}
+
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawArena();
+    drawPaddles();
+    drawBall();
+    if (isGameActive) {
+        movePlayer();
+        moveAI();
+        moveBall();
+    }
+    updateHud();
+
+    requestAnimationFrame(gameLoop);
+}
+
+startCountdown();
+gameLoop();
+</script>
+</body>
+</html>
