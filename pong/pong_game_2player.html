@@ -401,13 +401,13 @@ function updateHud() {
 }
 
 function movePlayer() {
-    if (upPressed && playerY > 0) playerY -= paddleSpeed;
-    if (downPressed && playerY + paddleHeight < canvas.height) playerY += paddleSpeed;
+    if (wPressed && playerY > 0) playerY -= paddleSpeed;
+    if (sPressed && playerY + paddleHeight < canvas.height) playerY += paddleSpeed;
 }
 
 function movePlayer2() {
-    if (wPressed && player2Y > 0) player2Y -= paddleSpeed;
-    if (sPressed && player2Y + paddleHeight < canvas.height) player2Y += paddleSpeed;
+    if (upPressed && player2Y > 0) player2Y -= paddleSpeed;
+    if (downPressed && player2Y + paddleHeight < canvas.height) player2Y += paddleSpeed;
 }
 
 function updateBallSpeed() {
