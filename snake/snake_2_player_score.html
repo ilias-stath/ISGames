@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Snake - Score</title>
+<title>Snake - 2 Player Score</title>
 <style>
   :root{--green-dark:#083e26;--green-mid:#0f7a4c;--green-light:#dff7e8;--brown:#7a5230;--red:#ef4444;--text:#eaf8f0;--muted:#cfeee0;--accent:#0fb670;--border:rgba(6,40,28,0.06)}
   *{box-sizing:border-box}
@@ -11,13 +11,15 @@
     radial-gradient(circle at 12% 18%, rgba(15,182,112,0.14), transparent 28%),
     radial-gradient(circle at 85% 80%, rgba(122,82,48,0.06), transparent 22%),
     linear-gradient(135deg, #8f502f, var(--green-mid) 55%, #8f502f);display:grid;place-items:center}
-  .panel{width:min(94vw,620px);padding:36px;border-radius:18px;background:linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.28));border:1px solid rgba(255,255,255,0.25);box-shadow:0 16px 48px rgba(0,0,0,0.12);text-align:center}
+  .panel{width:min(94vw,720px);padding:36px;border-radius:18px;background:linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.28));border:1px solid rgba(255,255,255,0.25);box-shadow:0 16px 48px rgba(0,0,0,0.12);text-align:center}
   h1{margin:0;font-size:0.9rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted)}
   .result-headline{font-size:2rem;font-weight:800;margin-top:14px}
-  .score-card{margin:28px auto;padding:24px;border-radius:16px;border:2px solid var(--accent);background:rgba(255,255,255,0.6);width:min(100%,360px)}
+  .cards{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+  .score-card{padding:24px;border-radius:16px;border:2px solid var(--accent);background:rgba(255,255,255,0.6);width:min(100%,300px)}
   .score-label{font-size:0.85rem;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px}
   .score-value{font-size:4rem;font-weight:800;color:var(--accent)}
-  .buttons{display:grid;gap:12px;width:min(100%,320px);margin:0 auto}
+  .detail{margin-top:14px;color:var(--muted);line-height:1.5}
+  .buttons{display:grid;gap:12px;width:min(100%,320px);margin:24px auto 0}
   button{appearance:none;border:0;border-radius:12px;padding:14px 20px;font-size:1rem;font-weight:700;cursor:pointer}
   .primary{background:linear-gradient(135deg,var(--accent),#34d399);color:white}
   .secondary{background:rgba(255,255,255,0.8);border:1px solid var(--border);color:var(--text)}
@@ -26,11 +28,18 @@
 <body>
   <main class="panel">
     <h1>Game Over</h1>
-    <div class="result-headline" id="resultHeadline">Nice Try</div>
-    <div class="score-card">
-      <div class="score-label">Final Score</div>
-      <div class="score-value" id="scoreValue">0</div>
+    <div class="result-headline" id="resultHeadline">Player 1 Wins!</div>
+    <div class="cards">
+      <div class="score-card">
+        <div class="score-label">Player 1</div>
+        <div class="score-value" id="scoreP1">0</div>
+      </div>
+      <div class="score-card">
+        <div class="score-label">Player 2</div>
+        <div class="score-value" id="scoreP2">0</div>
+      </div>
     </div>
+    <div class="detail" id="winDetail"></div>
     <div class="buttons">
       <button class="primary" id="replayButton">Play Again</button>
       <button class="secondary" id="menuButton">Back to Menu</button>
@@ -38,36 +47,47 @@
   </main>
 
   <script>
-    const scoreValue = document.getElementById('scoreValue');
+    const scoreP1 = document.getElementById('scoreP1');
+    const scoreP2 = document.getElementById('scoreP2');
     const resultHeadline = document.getElementById('resultHeadline');
+    const winDetail = document.getElementById('winDetail');
     const replayButton = document.getElementById('replayButton');
     const menuButton = document.getElementById('menuButton');
 
-    const finalScore = Number(sessionStorage.getItem('snakeScore') ?? '0');
-    scoreValue.textContent = String(finalScore);
-    if(finalScore>0){
-      resultHeadline.textContent = 'Well Played!';
-      resultHeadline.style.color='#10b981';
+    const p1 = Number(sessionStorage.getItem('snakeP1Score') ?? '0');
+    const p2 = Number(sessionStorage.getItem('snakeP2Score') ?? '0');
+    const winner = sessionStorage.getItem('snakeWinner') ?? 'Draw';
+    const reason = sessionStorage.getItem('snakeWinReason') ?? '';
+    const diff = Math.abs(p1 - p2);
+
+    scoreP1.textContent = String(p1);
+    scoreP2.textContent = String(p2);
+
+    if(winner === 'Draw'){
+      resultHeadline.textContent = 'Draw';
+      resultHeadline.style.color = '#f59e0b';
+      winDetail.textContent = `Both players collided.`;
+    } else {
+      resultHeadline.textContent = `${winner} Wins!`;
+      resultHeadline.style.color = '#10b981';
+      winDetail.textContent = `${winner} won because ${reason}.`;
     }
 
     replayButton.addEventListener('click', ()=>{
-      sessionStorage.removeItem('snakeScore');
       sessionStorage.removeItem('snakeMode');
       sessionStorage.removeItem('snakeP1Score');
       sessionStorage.removeItem('snakeP2Score');
       sessionStorage.removeItem('snakeWinner');
       sessionStorage.removeItem('snakeWinReason');
-      location.replace('snake_game.html');
+      location.replace('snake_2_player_game.html');
     });
 
     menuButton.addEventListener('click', ()=>{
-      sessionStorage.removeItem('snakeScore');
       sessionStorage.removeItem('snakeMode');
       sessionStorage.removeItem('snakeP1Score');
       sessionStorage.removeItem('snakeP2Score');
       sessionStorage.removeItem('snakeWinner');
       sessionStorage.removeItem('snakeWinReason');
-      sessionStorage.removeItem('snakeMode');
       location.replace('snake_start.html');
     });
   </script>

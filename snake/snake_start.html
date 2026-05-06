@@ -27,11 +27,11 @@
     .panel{width:min(92vw,520px);padding:36px;border-radius:18px;background:linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.28));border:1px solid rgba(255,255,255,0.25);box-shadow:0 18px 50px rgba(0,0,0,0.15);text-align:center}
     h1{margin:0 0 8px;font-size:2.2rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--text)}
     p{margin:0 0 18px;color:var(--muted)}
-    .buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-    .btn{border:0;padding:12px 18px;border-radius:12px;font-weight:700;cursor:pointer;font-size:1rem;transition:transform .12s ease,box-shadow .12s ease}
+    .buttons{display:flex;flex-direction:column;gap:12px;align-items:center;width:100%}
+    .btn{border:0;padding:12px 18px;border-radius:12px;font-weight:700;cursor:pointer;font-size:1rem;transition:transform .12s ease,box-shadow .12s ease;width:240px;max-width:84%;text-align:center}
     .btn:focus{outline:2px solid rgba(15,182,112,0.14)}
     .start{background:linear-gradient(135deg,var(--accent),#34d399);color:#ffffff;box-shadow:0 6px 20px rgba(122,82,48,0.06)}
-    .back{background:transparent;border:1px solid var(--border);color:var(--text)}
+    .back{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:var(--text)}
     .btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(122,82,48,0.06)}
     .hint{margin-top:14px;color:var(--muted);font-size:0.92rem}
   </style>
@@ -41,7 +41,8 @@
     <h1>Snake</h1>
     <p>Classic snake — eat apples to grow. Edges wrap around; avoid hitting yourself.</p>
     <div class="buttons">
-      <button class="btn start" id="startBtn">Start Game</button>
+      <button class="btn start" id="startBtn">Single Player</button>
+      <button class="btn start" id="start2Btn">2 Players</button>
       <button class="btn back" id="homeBtn">Back to Home</button>
     </div>
     <div class="hint" id="catchPhrase"></div>
@@ -58,7 +59,10 @@
     document.getElementById('catchPhrase').textContent = phrases[Math.floor(Math.random()*phrases.length)];
 
     document.getElementById('startBtn').addEventListener('click', ()=>{
-      location.href = 'snake_game.html';
+      location.href = 'snake_game.html?mode=solo';
+    });
+    document.getElementById('start2Btn').addEventListener('click', ()=>{
+      location.href = 'snake_2_player_game.html';
     });
 
     document.getElementById('homeBtn').addEventListener('click', ()=>{

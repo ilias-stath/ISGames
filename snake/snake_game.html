@@ -190,7 +190,12 @@
     function endGame(){
       isGameActive = false;
       clearInterval(moveInterval);
+      sessionStorage.setItem('snakeMode', 'solo');
       sessionStorage.setItem('snakeScore', String(score));
+      sessionStorage.removeItem('snakeP1Score');
+      sessionStorage.removeItem('snakeP2Score');
+      sessionStorage.removeItem('snakeWinner');
+      sessionStorage.removeItem('snakeWinReason');
       setTimeout(()=> location.href = 'snake_score.html', 300);
     }
 
