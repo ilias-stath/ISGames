@@ -96,6 +96,16 @@
 		background: linear-gradient(135deg, #8edbff, #d7f0ff);
 	}
 
+	.back {
+		background: transparent;
+		color: var(--text);
+		border: 1px solid var(--panel-border);
+		border-radius: 12px;
+		padding: 10px 14px;
+		font-weight: 700;
+		cursor: pointer;
+	}
+
 	.hint {
 		margin-top: 16px;
 		font-size: 0.92rem;
@@ -115,6 +125,9 @@
 		<button class="pvp" onclick="startGame('2player')">PvP</button>
 	</div>
 	<div class="hint" id="menuCatchphrase"></div>
+	<div style="text-align:center;margin-top:16px;">
+		<button class="back" onclick="location.href='../index.html'">Back to Home</button>
+	</div>
 </main>
 <script>
 const catchphrases = [
