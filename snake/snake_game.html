@@ -85,12 +85,12 @@
       {x: Math.floor(COLS/2) - 2, y: Math.floor(ROWS/2)}
     ];
     let dir = {x:1, y:0};
-    let nextDir = {x:1, y:0};
     let apple = null;
     let bomb = null;
     let score = 0;
     let isGameActive = false;
     let moveInterval = null;
+    let pendingDirs = [];
 
     function placeApple(){
       let spot;
@@ -191,7 +191,9 @@
         }
 
     function moveSnake(){
-      dir = nextDir;
+      if(pendingDirs.length){
+        dir = pendingDirs.shift();
+      }
       const head = snake[0];
       const nx = (head.x + dir.x + COLS) % COLS;
       const ny = (head.y + dir.y + ROWS) % ROWS;
@@ -248,14 +250,20 @@
     window.addEventListener('keydown', (e)=>{
       const key = e.key;
       if(!isGameActive) return;
-      if(key === 'ArrowUp' || key==='w' || key==='W'){
-        if(dir.y!==1) nextDir = {x:0,y:-1};
-      } else if(key==='ArrowDown' || key==='s' || key==='S'){
-        if(dir.y!==-1) nextDir = {x:0,y:1};
-      } else if(key==='ArrowLeft' || key==='a' || key==='A'){
-        if(dir.x!==1) nextDir = {x:-1,y:0};
-      } else if(key==='ArrowRight' || key==='d' || key==='D'){
-        if(dir.x!==-1) nextDir = {x:1,y:0};
+      const nextInput =
+        (key === 'ArrowUp' || key==='w' || key==='W') ? {x:0,y:-1} :
+        (key==='ArrowDown' || key==='s' || key==='S') ? {x:0,y:1} :
+        (key==='ArrowLeft' || key==='a' || key==='A') ? {x:-1,y:0} :
+        (key==='ArrowRight' || key==='d' || key==='D') ? {x:1,y:0} :
+        null;
+
+      if(!nextInput) return;
+
+      const lastDir = pendingDirs.length ? pendingDirs[pendingDirs.length - 1] : dir;
+      if(lastDir.x === -nextInput.x && lastDir.y === -nextInput.y) return;
+
+      if(pendingDirs.length < 2){
+        pendingDirs.push(nextInput);
       }
     });
 
