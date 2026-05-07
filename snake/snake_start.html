@@ -33,6 +33,14 @@
     .start{background:linear-gradient(135deg,var(--accent),#34d399);color:#ffffff;box-shadow:0 6px 20px rgba(122,82,48,0.06)}
     .back{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:var(--text)}
     .btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(122,82,48,0.06)}
+    .mode-row{display:flex;align-items:center;justify-content:center;gap:10px;width:240px;max-width:84%}
+    .mode-label{font-size:0.88rem;color:var(--muted);white-space:nowrap}
+    .toggle{position:relative;display:inline-flex;align-items:center;width:64px;height:34px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.1);padding:3px;cursor:pointer;flex:none}
+    .toggle input{position:absolute;opacity:0;pointer-events:none}
+    .toggle-track{width:100%;height:100%;border-radius:999px;transition:background .15s ease;display:block;background:rgba(255,255,255,0.12)}
+    .toggle-thumb{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:white;box-shadow:0 3px 10px rgba(0,0,0,0.18);transition:transform .15s ease}
+    .toggle input:checked + .toggle-track{background:linear-gradient(135deg,var(--accent),#34d399)}
+    .toggle input:checked ~ .toggle-thumb{transform:translateX(30px)}
     .hint{margin-top:14px;color:var(--muted);font-size:0.92rem}
   </style>
 </head>
@@ -42,7 +50,23 @@
     <p>Classic snake — eat apples to grow. Edges wrap around; avoid hitting yourself.</p>
     <div class="buttons">
       <button class="btn start" id="startBtn">Single Player</button>
+      <div class="mode-row" aria-label="single player mode toggle">
+        <span class="mode-label" id="modeLabel">Single Mode: Classic</span>
+        <label class="toggle" title="Switch single-player mode">
+          <input type="checkbox" id="modeToggle" />
+          <span class="toggle-track"></span>
+          <span class="toggle-thumb"></span>
+        </label>
+      </div>
       <button class="btn start" id="start2Btn">2 Players</button>
+      <div class="mode-row" aria-label="2 player mode toggle">
+        <span class="mode-label" id="mode2Label">2P Mode: Classic</span>
+        <label class="toggle" title="Switch 2-player mode">
+          <input type="checkbox" id="mode2Toggle" />
+          <span class="toggle-track"></span>
+          <span class="toggle-thumb"></span>
+        </label>
+      </div>
       <button class="btn back" id="homeBtn">Back to Home</button>
     </div>
     <div class="hint" id="catchPhrase"></div>
@@ -58,11 +82,34 @@
     ];
     document.getElementById('catchPhrase').textContent = phrases[Math.floor(Math.random()*phrases.length)];
 
+    const modeToggle = document.getElementById('modeToggle');
+    const modeLabel = document.getElementById('modeLabel');
+    const mode2Toggle = document.getElementById('mode2Toggle');
+    const mode2Label = document.getElementById('mode2Label');
+
+    function updateModeLabel(){
+      modeLabel.textContent = modeToggle.checked ? 'Single Mode: Bombs' : 'Single Mode: Classic';
+    }
+
+    function updateMode2Label(){
+      mode2Label.textContent = mode2Toggle.checked ? '2P Mode: Mayhem' : '2P Mode: Classic';
+    }
+
+    modeToggle.addEventListener('change', updateModeLabel);
+    updateModeLabel();
+
+    mode2Toggle.addEventListener('change', updateMode2Label);
+    updateMode2Label();
+
     document.getElementById('startBtn').addEventListener('click', ()=>{
-      location.href = 'snake_game.html?mode=solo';
+      const variant = modeToggle.checked ? 'bombs' : 'classic';
+      sessionStorage.setItem('snakeSoloMode', variant);
+      location.href = `snake_game.html?mode=solo&variant=${encodeURIComponent(variant)}`;
     });
     document.getElementById('start2Btn').addEventListener('click', ()=>{
-      location.href = 'snake_2_player_game.html';
+      const variant = mode2Toggle.checked ? 'mayhem' : 'classic';
+      sessionStorage.setItem('snake2Mode', variant);
+      location.href = `snake_2_player_game.html?variant=${encodeURIComponent(variant)}`;
     });
 
     document.getElementById('homeBtn').addEventListener('click', ()=>{

@@ -75,6 +75,9 @@
     const COLS = 32; // grid columns (640 / 20)
     const ROWS = 24; // grid rows (480 / 20)
     const CELL = 20;
+    const params = new URLSearchParams(location.search);
+    const soloVariant = params.get('variant') || sessionStorage.getItem('snakeSoloMode') || 'classic';
+    const isBombsMode = soloVariant === 'bombs';
 
     let snake = [
       {x: Math.floor(COLS/2), y: Math.floor(ROWS/2)},
@@ -84,6 +87,7 @@
     let dir = {x:1, y:0};
     let nextDir = {x:1, y:0};
     let apple = null;
+    let bomb = null;
     let score = 0;
     let isGameActive = false;
     let moveInterval = null;
@@ -95,6 +99,21 @@
         if(!snake.some(s=>s.x===spot.x && s.y===spot.y)) break;
       }
       apple = spot;
+      if(isBombsMode){
+        placeBomb();
+      } else {
+        bomb = null;
+      }
+    }
+
+    function placeBomb(){
+      let spot;
+      while(true){
+        spot = {x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS)};
+        const occupied = snake.some(s=>s.x===spot.x && s.y===spot.y) || (apple && apple.x===spot.x && apple.y===spot.y);
+        if(!occupied) break;
+      }
+      bomb = spot;
     }
 
     function draw(){
@@ -139,6 +158,16 @@
           ctx.beginPath(); ctx.ellipse(cx + r*0.28, cy - r*0.6, r*0.2, r*0.12, -Math.PI/6, 0, Math.PI*2); ctx.fill();
       }
 
+      if(isBombsMode && bomb){
+        const bx = bomb.x * CELL + CELL/2;
+        const by = bomb.y * CELL + CELL/2;
+        const br = CELL*0.38;
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(bx, by, br, 0, Math.PI*2);
+        ctx.fill();
+      }
+
       // snake
       for(let i=0;i<snake.length;i++){
         const s = snake[i];
@@ -180,6 +209,22 @@
         score++;
         scoreDisplay.textContent = String(score);
         placeApple();
+      } else if(isBombsMode && bomb && nx===bomb.x && ny===bomb.y){
+        // check if bomb would kill the snake or drop score too far
+        if(score < 2 || snake.length <= 3){
+          score = 0;
+          scoreDisplay.textContent = String(score);
+          endGame();
+          return;
+        }
+        score = Math.max(0, score - 2);
+        scoreDisplay.textContent = String(score);
+        for(let i = 0; i < 3; i++){
+          if(snake.length > 1){
+            snake.pop();
+          }
+        }
+        placeBomb();
       } else {
         snake.pop();
       }

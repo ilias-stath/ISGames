@@ -74,16 +74,16 @@
     }
 
     replayButton.addEventListener('click', ()=>{
-      sessionStorage.removeItem('snakeMode');
+      const mode = sessionStorage.getItem('snake2Mode') || 'classic';
       sessionStorage.removeItem('snakeP1Score');
       sessionStorage.removeItem('snakeP2Score');
       sessionStorage.removeItem('snakeWinner');
       sessionStorage.removeItem('snakeWinReason');
-      location.replace('snake_2_player_game.html');
+      location.replace(`snake_2_player_game.html?variant=${encodeURIComponent(mode)}`);
     });
 
     menuButton.addEventListener('click', ()=>{
-      sessionStorage.removeItem('snakeMode');
+      sessionStorage.removeItem('snake2Mode');
       sessionStorage.removeItem('snakeP1Score');
       sessionStorage.removeItem('snakeP2Score');
       sessionStorage.removeItem('snakeWinner');
