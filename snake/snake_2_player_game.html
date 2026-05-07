@@ -28,29 +28,65 @@
     .hud-item{padding:8px 12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.08));text-align:center}
     .hud-label{display:block;font-size:0.75rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase}
     .hud-value{display:block;font-size:1.6rem;font-weight:800;color:var(--accent)}
-    #game-area{width:640px;height:480px;border-radius:12px;overflow:hidden;border:2px solid rgba(255,255,255,0.04);box-shadow:0 10px 30px rgba(0,0,0,0.08);background:linear-gradient(135deg, rgba(10,60,30,0.06) 0%, rgba(10,60,30,0.02) 100%);position:relative}
+    #game-area{width:640px;height:480px;border-radius:12px;overflow:visible;border:2px solid rgba(255,255,255,0.04);box-shadow:0 10px 30px rgba(0,0,0,0.08);background:linear-gradient(135deg, rgba(10,60,30,0.06) 0%, rgba(10,60,30,0.02) 100%);position:relative}
     canvas{display:block;background:transparent}
+    .controls-hint{
+      position:fixed;
+      top:50%;
+      transform:translateY(-50%);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:10px;
+      z-index:2;
+      pointer-events:none;
+    }
+    .controls-hint.left{left:calc((100vw - 640px) / 4);transform:translate(-50%, -50%)}
+    .controls-hint.right{right:calc((100vw - 640px) / 4);transform:translate(50%, -50%)}
+    .controls-keypad{display:flex;flex-direction:column;gap:8px;align-items:center}
+    .key-row{display:flex;gap:8px}
+    .key-row.top{justify-content:center}
+    .key-row.middle{justify-content:space-between}
+    .key-chip{width:62px;height:46px;display:grid;place-items:center;border-radius:12px;border:1px solid rgba(255,255,255,0.18);background:linear-gradient(180deg, rgba(255,255,255,0.16), rgba(8,12,24,0.82));color:#f4f7ff;font-size:1rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;box-shadow:0 10px 22px rgba(0,0,0,0.22), inset 0 0 18px rgba(255,255,255,0.05)}
+    .hint-label{font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted)}
     .start-overlay{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(180deg, rgba(10,60,30,0.18), rgba(10,60,30,0.12));z-index:3}
     .start-overlay.hidden{display:none}
     .overlay-card{padding:24px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.08));border:1px solid rgba(255,255,255,0.15);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 12px 36px rgba(0,0,0,0.08)}
     .overlay-count{width:80px;height:80px;border-radius:50%;display:grid;place-items:center;font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,var(--accent),#34d399);color:#fff}
+    .mayhem-hint{margin-top:14px;max-width:640px;padding:10px 14px;border-radius:12px;background:rgba(8,12,24,0.58);border:1px solid rgba(255,255,255,0.14);color:var(--muted);font-size:0.92rem;line-height:1.45;text-align:center;box-shadow:0 10px 24px rgba(0,0,0,0.12)}
+    .mayhem-hint.hidden{display:none}
   </style>
 </head>
 <body>
   <button class="back-button" onclick="location.href='snake_start.html'">Back to Menu</button>
     <div class="hud">
       <div class="hud-item">
-        <span class="hud-label">Player 1</span>
+        <span class="hud-label">Player 2</span>
         <span class="hud-value" id="scoreP1">0</span>
       </div>
       <div class="hud-item">
-        <span class="hud-label">Player 2</span>
+        <span class="hud-label">Player 1</span>
         <span class="hud-value" id="scoreP2">0</span>
       </div>
     </div>
 
   <div id="game-area">
     <canvas id="canvas" width="640" height="480"></canvas>
+    <div class="controls-hint left" aria-hidden="true">
+      <div class="hint-label">Player 2</div>
+      <div class="controls-keypad">
+        <div class="key-row top"><div class="key-chip">W</div></div>
+        <div class="key-row middle"><div class="key-chip">A</div><div class="key-chip">S</div><div class="key-chip">D</div></div>
+      </div>
+    </div>
+
+    <div class="controls-hint right" aria-hidden="true">
+      <div class="hint-label">Player 1</div>
+      <div class="controls-keypad">
+        <div class="key-row top"><div class="key-chip">Up</div></div>
+        <div class="key-row middle"><div class="key-chip">Left</div><div class="key-chip">Down</div><div class="key-chip">Right</div></div>
+      </div>
+    </div>
 
     <div class="start-overlay" id="startOverlay">
       <div class="overlay-card">
@@ -60,14 +96,19 @@
     </div>
   </div>
 
+  <div class="mayhem-hint hidden" id="mayhemHint">
+    Mayhem mode: you can eat your enemy by the tail only if they are larger than 3 blocks.
+  </div>
+
   <script>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    const scoreDisplayP1 = document.getElementById('scoreP1');
-    const scoreDisplayP2 = document.getElementById('scoreP2');
+    const player2ScoreDisplay = document.getElementById('scoreP1');
+    const player1ScoreDisplay = document.getElementById('scoreP2');
     const startOverlay = document.getElementById('startOverlay');
     const overlayCount = document.getElementById('overlayCount');
     const overlayPhrase = document.getElementById('overlayPhrase');
+    const mayhemHint = document.getElementById('mayhemHint');
 
     const catchphrases = [
       'Grow long and thrive.',
@@ -86,6 +127,7 @@
     const params = new URLSearchParams(location.search);
     const duoVariant = params.get('variant') || sessionStorage.getItem('snake2Mode') || 'classic';
     const isMayhem = duoVariant === 'mayhem';
+    mayhemHint.classList.toggle('hidden', !isMayhem);
 
     // duo-only game
     let snake = [];
@@ -196,8 +238,8 @@
             if(head2.x===nx && head2.y===ny){
               // head-to-head collision: both scores go to 0
               score = 0; score2 = 0;
-              scoreDisplayP1.textContent = String(score);
-              scoreDisplayP2.textContent = String(score2);
+              player2ScoreDisplay.textContent = String(score2);
+              player1ScoreDisplay.textContent = String(score);
               p1Lose = true; p2Lose = true;
             } else {
               // body collision: cut p2's snake
@@ -209,8 +251,8 @@
                   apples.push(seg);
                 }
                 score2 -= tailLen; if(score2 < 0) score2 = 0;
-                scoreDisplayP1.textContent = String(score);
-                scoreDisplayP2.textContent = String(score2);
+                player2ScoreDisplay.textContent = String(score2);
+                player1ScoreDisplay.textContent = String(score);
                 if(snake2.length <= 2){
                   p2Lose = true;
                 }
@@ -222,8 +264,8 @@
             if(head.x===nx2 && head.y===ny2){
               // head-to-head collision: both scores go to 0
               score = 0; score2 = 0;
-              scoreDisplayP1.textContent = String(score);
-              scoreDisplayP2.textContent = String(score2);
+              player2ScoreDisplay.textContent = String(score);
+              player1ScoreDisplay.textContent = String(score2);
               p1Lose = true; p2Lose = true;
             } else {
               // body collision: cut p1's snake
@@ -235,8 +277,8 @@
                   apples.push(seg);
                 }
                 score -= tailLen; if(score < 0) score = 0;
-                scoreDisplayP1.textContent = String(score);
-                scoreDisplayP2.textContent = String(score2);
+                player2ScoreDisplay.textContent = String(score2);
+                player1ScoreDisplay.textContent = String(score);
                 if(snake.length <= 2){
                   p1Lose = true;
                 }
@@ -259,8 +301,8 @@
       let ate1 = false, ate2 = false;
       for(let i=apples.length-1;i>=0;i--){
         const a = apples[i];
-        if(!ate1 && nx===a.x && ny===a.y){ score++; apples.splice(i,1); scoreDisplayP1.textContent = String(score); ate1 = true; continue; }
-        if(!ate2 && nx2===a.x && ny2===a.y){ score2++; apples.splice(i,1); scoreDisplayP2.textContent = String(score2); ate2 = true; }
+        if(!ate1 && nx===a.x && ny===a.y){ score++; apples.splice(i,1); player1ScoreDisplay.textContent = String(score); ate1 = true; continue; }
+        if(!ate2 && nx2===a.x && ny2===a.y){ score2++; apples.splice(i,1); player2ScoreDisplay.textContent = String(score2); ate2 = true; }
       }
 
       if(!ate1) snake.pop();
@@ -331,7 +373,7 @@
     }
 
     // init
-    draw(); scoreDisplayP1.textContent = '0'; scoreDisplayP2.textContent = '0'; startCountdown();
+    draw(); player2ScoreDisplay.textContent = '0'; player1ScoreDisplay.textContent = '0'; startCountdown();
 
     // prevent arrow scrolling
     window.addEventListener('keydown', function(e){ if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault(); });

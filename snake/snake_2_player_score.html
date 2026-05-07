@@ -31,11 +31,11 @@
     <div class="result-headline" id="resultHeadline">Player 1 Wins!</div>
     <div class="cards">
       <div class="score-card">
-        <div class="score-label">Player 1</div>
+        <div class="score-label">Player 2</div>
         <div class="score-value" id="scoreP1">0</div>
       </div>
       <div class="score-card">
-        <div class="score-label">Player 2</div>
+        <div class="score-label">Player 1</div>
         <div class="score-value" id="scoreP2">0</div>
       </div>
     </div>
@@ -47,21 +47,21 @@
   </main>
 
   <script>
-    const scoreP1 = document.getElementById('scoreP1');
-    const scoreP2 = document.getElementById('scoreP2');
+    const player2ScoreDisplay = document.getElementById('scoreP1');
+    const player1ScoreDisplay = document.getElementById('scoreP2');
     const resultHeadline = document.getElementById('resultHeadline');
     const winDetail = document.getElementById('winDetail');
     const replayButton = document.getElementById('replayButton');
     const menuButton = document.getElementById('menuButton');
 
-    const p1 = Number(sessionStorage.getItem('snakeP1Score') ?? '0');
-    const p2 = Number(sessionStorage.getItem('snakeP2Score') ?? '0');
+    const player1Score = Number(sessionStorage.getItem('snakeP1Score') ?? '0');
+    const player2Score = Number(sessionStorage.getItem('snakeP2Score') ?? '0');
     const winner = sessionStorage.getItem('snakeWinner') ?? 'Draw';
     const reason = sessionStorage.getItem('snakeWinReason') ?? '';
-    const diff = Math.abs(p1 - p2);
+    const diff = Math.abs(player1Score - player2Score);
 
-    scoreP1.textContent = String(p1);
-    scoreP2.textContent = String(p2);
+    player2ScoreDisplay.textContent = String(player2Score);
+    player1ScoreDisplay.textContent = String(player1Score);
 
     if(winner === 'Draw'){
       resultHeadline.textContent = 'Draw';

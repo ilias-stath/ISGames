@@ -30,6 +30,49 @@
     .game-wrapper {
         position: relative;
     }
+    .controls-hint {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        z-index: 2;
+        pointer-events: none;
+    }
+    .controls-hint.left {
+        left: -220px;
+    }
+    .controls-hint.right {
+        right: -220px;
+    }
+    .controls-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .key-chip {
+        width: 62px;
+        height: 46px;
+        display: grid;
+        place-items: center;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(8, 12, 24, 0.82));
+        color: #f4f7ff;
+        font-size: 1rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22), inset 0 0 18px rgba(255, 255, 255, 0.05);
+    }
+    .hint-label {
+        font-size: 0.68rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #a7b0c5;
+    }
     .hud {
         display: flex;
         justify-content: space-between;
@@ -230,6 +273,20 @@
 <body>
 <button class="back-button" onclick="location.href='pong_starting_screen.html'">Back to Menu</button>
 <div class="game-wrapper">
+    <div class="controls-hint left" aria-hidden="true">
+        <div class="hint-label">Player 1</div>
+        <div class="controls-stack">
+            <div class="key-chip">W</div>
+            <div class="key-chip">S</div>
+        </div>
+    </div>
+    <div class="controls-hint right" aria-hidden="true">
+        <div class="hint-label">Player 2</div>
+        <div class="controls-stack">
+            <div class="key-chip">Up</div>
+            <div class="key-chip">Down</div>
+        </div>
+    </div>
     <div class="hud">
         <div class="hud-item player">
             <span class="hud-label">Player 1</span>
