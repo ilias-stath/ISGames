@@ -74,7 +74,9 @@
       'Careful not to eat too many, your tummy will hurt.',
       'Avoid the edges or not.',
       'Eat apples, avoid yourself.',
-      'Reflexes and planning win.'
+      'Reflexes and planning win.',
+      'Devour your enemy!!!!',
+      'DOn\'t lose'
     ];
 
     const COLS = 32; // grid columns (640 / 20)
@@ -88,11 +90,11 @@
     // duo-only game
     let snake = [];
     let dir = {x:-1,y:0};
-    let nextDir = {x:-1,y:0};
+    let pendingDir = null;
 
     let snake2 = [];
     let dir2 = {x:1,y:0};
-    let nextDir2 = {x:1,y:0};
+    let pendingDir2 = null;
 
     let apples = [];
     let score = 0;
@@ -164,8 +166,16 @@
     }
 
     function moveTick(){
-      dir = nextDir; const head = snake[0]; const nx = (head.x + dir.x + COLS) % COLS; const ny = (head.y + dir.y + ROWS) % ROWS;
-      dir2 = nextDir2; const head2 = snake2[0]; const nx2 = (head2.x + dir2.x + COLS) % COLS; const ny2 = (head2.y + dir2.y + ROWS) % ROWS;
+      if(pendingDir){
+        dir = pendingDir;
+        pendingDir = null;
+      }
+      if(pendingDir2){
+        dir2 = pendingDir2;
+        pendingDir2 = null;
+      }
+      const head = snake[0]; const nx = (head.x + dir.x + COLS) % COLS; const ny = (head.y + dir.y + ROWS) % ROWS;
+      const head2 = snake2[0]; const nx2 = (head2.x + dir2.x + COLS) % COLS; const ny2 = (head2.y + dir2.y + ROWS) % ROWS;
 
       let p1Lose = false, p2Lose = false;
       // self
@@ -277,15 +287,19 @@
       const key = e.key;
       if(!isGameActive) return;
       // player1 arrows
-      if(key === 'ArrowUp'){ if(dir.y!==1) nextDir = {x:0,y:-1}; }
-      else if(key==='ArrowDown'){ if(dir.y!==-1) nextDir = {x:0,y:1}; }
-      else if(key==='ArrowLeft'){ if(dir.x!==1) nextDir = {x:-1,y:0}; }
-      else if(key==='ArrowRight'){ if(dir.x!==-1) nextDir = {x:1,y:0}; }
+      if(!pendingDir){
+        if(key === 'ArrowUp'){ if(dir.y!==1) pendingDir = {x:0,y:-1}; }
+        else if(key==='ArrowDown'){ if(dir.y!==-1) pendingDir = {x:0,y:1}; }
+        else if(key==='ArrowLeft'){ if(dir.x!==1) pendingDir = {x:-1,y:0}; }
+        else if(key==='ArrowRight'){ if(dir.x!==-1) pendingDir = {x:1,y:0}; }
+      }
       // player2 WASD
-      if(key==='w' || key==='W'){ if(dir2.y!==1) nextDir2 = {x:0,y:-1}; }
-      else if(key==='s' || key==='S'){ if(dir2.y!==-1) nextDir2 = {x:0,y:1}; }
-      else if(key==='a' || key==='A'){ if(dir2.x!==1) nextDir2 = {x:-1,y:0}; }
-      else if(key==='d' || key==='D'){ if(dir2.x!==-1) nextDir2 = {x:1,y:0}; }
+      if(!pendingDir2){
+        if(key==='w' || key==='W'){ if(dir2.y!==1) pendingDir2 = {x:0,y:-1}; }
+        else if(key==='s' || key==='S'){ if(dir2.y!==-1) pendingDir2 = {x:0,y:1}; }
+        else if(key==='a' || key==='A'){ if(dir2.x!==1) pendingDir2 = {x:-1,y:0}; }
+        else if(key==='d' || key==='D'){ if(dir2.x!==-1) pendingDir2 = {x:1,y:0}; }
+      }
     });
 
     function startCountdown(){
@@ -295,10 +309,10 @@
           startOverlay.classList.add('hidden'); isGameActive = true;
           // init positions: player1 right side, moving left
           snake = [ {x: Math.floor(COLS*0.75), y: Math.floor(ROWS/2)}, {x: Math.floor(COLS*0.75)+1, y: Math.floor(ROWS/2)}, {x: Math.floor(COLS*0.75)+2, y: Math.floor(ROWS/2)} ];
-          dir = {x:-1,y:0}; nextDir = {x:-1,y:0};
+          dir = {x:-1,y:0}; pendingDir = null;
           // player2 left side, moving right
           snake2 = [ {x: Math.floor(COLS*0.25), y: Math.floor(ROWS/2)}, {x: Math.floor(COLS*0.25)-1, y: Math.floor(ROWS/2)}, {x: Math.floor(COLS*0.25)-2, y: Math.floor(ROWS/2)} ];
-          dir2 = {x:1,y:0}; nextDir2 = {x:1,y:0};
+          dir2 = {x:1,y:0}; pendingDir2 = null;
           placeApples();
           moveInterval = setInterval(moveTick, 120);
         }, 250);
