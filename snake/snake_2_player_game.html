@@ -81,6 +81,10 @@
     const ROWS = 24; // grid rows (480 / 20)
     const CELL = 20;
 
+    const params = new URLSearchParams(location.search);
+    const duoVariant = params.get('variant') || sessionStorage.getItem('snake2Mode') || 'classic';
+    const isMayhem = duoVariant === 'mayhem';
+
     // duo-only game
     let snake = [];
     let dir = {x:-1,y:0};
@@ -167,9 +171,72 @@
       // self
       if(snake.some((seg, idx)=> idx>0 && seg.x===nx && seg.y===ny)) p1Lose = true;
       if(snake2.some((seg, idx)=> idx>0 && seg.x===nx2 && seg.y===ny2)) p2Lose = true;
-      // hit other
-      if(snake2.some(seg => seg.x===nx && seg.y===ny)) p1Lose = true;
-      if(snake.some(seg => seg.x===nx2 && seg.y===ny2)) p2Lose = true;
+
+      // Check if heads move to the same position (head-to-head collision)
+      if(nx === nx2 && ny === ny2){
+        p1Lose = true; p2Lose = true;
+      } else {
+        // collision with other player body/head
+        if(!isMayhem){
+          // classic mode: any collision is a loss
+          if(snake2.some(seg => seg.x===nx && seg.y===ny)) p1Lose = true;
+          if(snake.some(seg => seg.x===nx2 && seg.y===ny2)) p2Lose = true;
+        } else {
+          // mayhem mode: check collision type
+          // p1 collides with p2
+          if(snake2.some(seg => seg.x===nx && seg.y===ny)){
+            if(head2.x===nx && head2.y===ny){
+              // head-to-head collision: both scores go to 0
+              score = 0; score2 = 0;
+              scoreDisplayP1.textContent = String(score);
+              scoreDisplayP2.textContent = String(score2);
+              p1Lose = true; p2Lose = true;
+            } else {
+              // body collision: cut p2's snake
+              const hitIdx = snake2.findIndex(seg => seg.x===nx && seg.y===ny);
+              if(hitIdx > 0){
+                const tailLen = snake2.length - hitIdx;
+                for(let i = 0; i < tailLen; i++){
+                  const seg = snake2.pop();
+                  apples.push(seg);
+                }
+                score2 -= tailLen; if(score2 < 0) score2 = 0;
+                scoreDisplayP1.textContent = String(score);
+                scoreDisplayP2.textContent = String(score2);
+                if(snake2.length <= 2){
+                  p2Lose = true;
+                }
+              }
+            }
+          }
+          // p2 collides with p1
+          if(snake.some(seg => seg.x===nx2 && seg.y===ny2)){
+            if(head.x===nx2 && head.y===ny2){
+              // head-to-head collision: both scores go to 0
+              score = 0; score2 = 0;
+              scoreDisplayP1.textContent = String(score);
+              scoreDisplayP2.textContent = String(score2);
+              p1Lose = true; p2Lose = true;
+            } else {
+              // body collision: cut p1's snake
+              const hitIdx = snake.findIndex(seg => seg.x===nx2 && seg.y===ny2);
+              if(hitIdx > 0){
+                const tailLen = snake.length - hitIdx;
+                for(let i = 0; i < tailLen; i++){
+                  const seg = snake.pop();
+                  apples.push(seg);
+                }
+                score -= tailLen; if(score < 0) score = 0;
+                scoreDisplayP1.textContent = String(score);
+                scoreDisplayP2.textContent = String(score2);
+                if(snake.length <= 2){
+                  p1Lose = true;
+                }
+              }
+            }
+          }
+        }
+      }
 
       if(p1Lose || p2Lose){
         if(p1Lose && p2Lose) endGame('Draw','both collided');
