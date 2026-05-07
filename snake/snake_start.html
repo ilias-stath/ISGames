@@ -92,12 +92,13 @@
     }
 
     function updateMode2Label(){
-      mode2Label.textContent = mode2Toggle.checked ? '2P Mode: Mayhem' : '2P Mode: Classic';
+      mode2Label.textContent = mode2Toggle.checked ? '2P Mode: Mayhem (Bombs)' : '2P Mode: Classic';
     }
 
     modeToggle.addEventListener('change', updateModeLabel);
     updateModeLabel();
 
+    mode2Toggle.checked = false;
     mode2Toggle.addEventListener('change', updateMode2Label);
     updateMode2Label();
 

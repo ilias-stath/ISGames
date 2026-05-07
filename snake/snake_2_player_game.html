@@ -97,7 +97,7 @@
   </div>
 
   <div class="mayhem-hint hidden" id="mayhemHint">
-    Mayhem mode: you can eat your enemy by the tail only if they are larger than 3 blocks.
+    Mayhem mode: you can eat your enemy last body part. If he is only 3 body parts he will lose. BUT be careful, cause you could lose also.
   </div>
 
   <script>
@@ -117,7 +117,7 @@
       'Eat apples, avoid yourself.',
       'Reflexes and planning win.',
       'Devour your enemy!!!!',
-      'DOn\'t lose'
+      'Don\'t lose'
     ];
 
     const COLS = 32; // grid columns (640 / 20)
@@ -126,8 +126,14 @@
 
     const params = new URLSearchParams(location.search);
     const duoVariant = params.get('variant') || sessionStorage.getItem('snake2Mode') || 'classic';
-    const isMayhem = duoVariant === 'mayhem';
-    mayhemHint.classList.toggle('hidden', !isMayhem);
+    const isMayhem = duoVariant === 'mayhem' || duoVariant === 'bombs';
+    const isBombsMode = isMayhem;
+    if(isMayhem){
+      mayhemHint.textContent = 'Mayhem mode: tail battles + bombs. If enemy has only 3 body parts and you hit the tail, they lose. Bombs are dangerous: with score under 2 or size 3, bomb hit is instant defeat.';
+      mayhemHint.classList.remove('hidden');
+    } else {
+      mayhemHint.classList.add('hidden');
+    }
 
     // duo-only game
     let snake = [];
@@ -139,6 +145,8 @@
     let pendingDirs2 = [];
 
     let apples = [];
+    let bombs = [];
+    const MAX_BOMBS = 3;
     let score = 0;
     let score2 = 0;
     let isGameActive = false;
@@ -150,7 +158,7 @@
         let spot; let tries = 0;
         while(true){
           spot = {x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS)};
-          const occupied = snake.some(s=>s.x===spot.x && s.y===spot.y) || snake2.some(s=>s.x===spot.x && s.y===spot.y) || apples.some(a=>a.x===spot.x && a.y===spot.y);
+          const occupied = snake.some(s=>s.x===spot.x && s.y===spot.y) || snake2.some(s=>s.x===spot.x && s.y===spot.y) || apples.some(a=>a.x===spot.x && a.y===spot.y) || bombs.some(b=>b.x===spot.x && b.y===spot.y);
           if(!occupied) break;
           if(++tries>200) break;
         }
@@ -158,7 +166,25 @@
       }
     }
 
-    function draw(){
+    function placeBombs(){
+      if(!isBombsMode){
+        bombs = [];
+        return;
+      }
+      while(bombs.length < MAX_BOMBS){
+        let spot;
+        let tries = 0;
+        while(true){
+          spot = {x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS)};
+          const occupied = snake.some(s=>s.x===spot.x && s.y===spot.y) || snake2.some(s=>s.x===spot.x && s.y===spot.y) || apples.some(a=>a.x===spot.x && a.y===spot.y) || bombs.some(b=>b.x===spot.x && b.y===spot.y);
+          if(!occupied) break;
+          if(++tries>300) break;
+        }
+        bombs.push(spot);
+      }
+    }
+
+    function draw(topSnake){
       ctx.clearRect(0,0,canvas.width,canvas.height);
       const bgGrad = ctx.createLinearGradient(0,0,0,canvas.height);
       bgGrad.addColorStop(0, '#a0714f'); bgGrad.addColorStop(1, '#8b6a47');
@@ -186,24 +212,49 @@
         ctx.fillStyle = 'rgba(10,90,50,0.9)'; ctx.beginPath(); ctx.ellipse(cx + r*0.28, cy - r*0.6, r*0.2, r*0.12, -Math.PI/6, 0, Math.PI*2); ctx.fill();
       }
 
-      // snake 1 (green) - player 1 uses arrows
-      for(let i=0;i<snake.length;i++){
-        const s = snake[i]; const x = s.x*CELL, y = s.y*CELL;
-        const grad = ctx.createLinearGradient(x,y,x+CELL,y+CELL);
-        if(i===0){ grad.addColorStop(0, '#044d31'); grad.addColorStop(1, '#0fa97a'); }
-        else { grad.addColorStop(0, '#0b7a50'); grad.addColorStop(1, '#12c28a'); }
-        ctx.fillStyle = grad; ctx.fillRect(x+1, y+1, CELL-2, CELL-2);
-        ctx.strokeStyle = 'rgba(122,82,48,0.18)'; ctx.lineWidth = 1; ctx.strokeRect(x+0.5, y+0.5, CELL-1, CELL-1);
+      if(isBombsMode){
+        for(const bomb of bombs){
+          const bx = bomb.x * CELL + CELL/2;
+          const by = bomb.y * CELL + CELL/2;
+          const br = CELL*0.38;
+          ctx.fillStyle = '#000000';
+          ctx.beginPath();
+          ctx.arc(bx, by, br, 0, Math.PI*2);
+          ctx.fill();
+        }
       }
 
-      // snake 2 (blue) - player 2 uses WASD
-      for(let i=0;i<snake2.length;i++){
-        const s = snake2[i]; const x = s.x*CELL, y = s.y*CELL;
-        const grad = ctx.createLinearGradient(x,y,x+CELL,y+CELL);
-        if(i===0){ grad.addColorStop(0, '#083a5a'); grad.addColorStop(1, '#2aa0ff'); }
-        else { grad.addColorStop(0, '#0b6fa5'); grad.addColorStop(1, '#4fb8ff'); }
-        ctx.fillStyle = grad; ctx.fillRect(x+1, y+1, CELL-2, CELL-2);
-        ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 1; ctx.strokeRect(x+0.5, y+0.5, CELL-1, CELL-1);
+      function drawSnake1(){
+        for(let i=0;i<snake.length;i++){
+          const s = snake[i]; const x = s.x*CELL, y = s.y*CELL;
+          const grad = ctx.createLinearGradient(x,y,x+CELL,y+CELL);
+          if(i===0){ grad.addColorStop(0, '#044d31'); grad.addColorStop(1, '#0fa97a'); }
+          else { grad.addColorStop(0, '#0b7a50'); grad.addColorStop(1, '#12c28a'); }
+          ctx.fillStyle = grad; ctx.fillRect(x+1, y+1, CELL-2, CELL-2);
+          ctx.strokeStyle = 'rgba(122,82,48,0.18)'; ctx.lineWidth = 1; ctx.strokeRect(x+0.5, y+0.5, CELL-1, CELL-1);
+        }
+      }
+
+      function drawSnake2(){
+        for(let i=0;i<snake2.length;i++){
+          const s = snake2[i]; const x = s.x*CELL, y = s.y*CELL;
+          const grad = ctx.createLinearGradient(x,y,x+CELL,y+CELL);
+          if(i===0){ grad.addColorStop(0, '#083a5a'); grad.addColorStop(1, '#2aa0ff'); }
+          else { grad.addColorStop(0, '#0b6fa5'); grad.addColorStop(1, '#4fb8ff'); }
+          ctx.fillStyle = grad; ctx.fillRect(x+1, y+1, CELL-2, CELL-2);
+          ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 1; ctx.strokeRect(x+0.5, y+0.5, CELL-1, CELL-1);
+        }
+      }
+
+      if(topSnake === 'p1'){
+        drawSnake2();
+        drawSnake1();
+      } else if(topSnake === 'p2'){
+        drawSnake1();
+        drawSnake2();
+      } else {
+        drawSnake1();
+        drawSnake2();
       }
     }
 
@@ -218,70 +269,127 @@
       const head2 = snake2[0]; const nx2 = (head2.x + dir2.x + COLS) % COLS; const ny2 = (head2.y + dir2.y + ROWS) % ROWS;
 
       let p1Lose = false, p2Lose = false;
+      let p1LoseReason = '', p2LoseReason = '';
+      let collisionAttacker = null;
+      function setAttacker(player){
+        if(collisionAttacker === null){
+          collisionAttacker = player;
+        } else if(collisionAttacker !== player){
+          collisionAttacker = 'both';
+        }
+      }
       // self
-      if(snake.some((seg, idx)=> idx>0 && seg.x===nx && seg.y===ny)) p1Lose = true;
-      if(snake2.some((seg, idx)=> idx>0 && seg.x===nx2 && seg.y===ny2)) p2Lose = true;
+      if(snake.some((seg, idx)=> idx>0 && seg.x===nx && seg.y===ny)){
+        p1Lose = true;
+        p1LoseReason = 'Player 1 hit their own body';
+        setAttacker('p1');
+      }
+      if(snake2.some((seg, idx)=> idx>0 && seg.x===nx2 && seg.y===ny2)){
+        p2Lose = true;
+        p2LoseReason = 'Player 2 hit their own body';
+        setAttacker('p2');
+      }
+
+      const p1BombIdx = isBombsMode ? bombs.findIndex(b => b.x===nx && b.y===ny) : -1;
+      const p2BombIdx = isBombsMode ? bombs.findIndex(b => b.x===nx2 && b.y===ny2) : -1;
+
+      if(isBombsMode){
+        if(p1BombIdx !== -1 && (score < 2 || snake.length <= 3)){
+          p1Lose = true;
+          p1LoseReason = 'Player 1 hit a bomb at low score/size';
+          setAttacker('p1');
+        }
+        if(p2BombIdx !== -1 && (score2 < 2 || snake2.length <= 3)){
+          p2Lose = true;
+          p2LoseReason = 'Player 2 hit a bomb at low score/size';
+          setAttacker('p2');
+        }
+      }
 
       // Check if heads move to the same position (head-to-head collision)
       if(nx === nx2 && ny === ny2){
         p1Lose = true; p2Lose = true;
+        p1LoseReason = 'Head-to-head collision';
+        p2LoseReason = 'Head-to-head collision';
+        setAttacker('both');
       } else {
         // collision with other player body/head
         if(!isMayhem){
           // classic mode: any collision is a loss
-          if(snake2.some(seg => seg.x===nx && seg.y===ny)) p1Lose = true;
-          if(snake.some(seg => seg.x===nx2 && seg.y===ny2)) p2Lose = true;
-        } else {
-          // mayhem mode: check collision type
-          // p1 collides with p2
           if(snake2.some(seg => seg.x===nx && seg.y===ny)){
-            if(head2.x===nx && head2.y===ny){
-              // head-to-head collision: both scores go to 0
+            p1Lose = true;
+            p1LoseReason = 'Player 1 hit Player 2';
+            setAttacker('p1');
+          }
+          if(snake.some(seg => seg.x===nx2 && seg.y===ny2)){
+            p2Lose = true;
+            p2LoseReason = 'Player 2 hit Player 1';
+            setAttacker('p2');
+          }
+        } else {
+          // mayhem mode: only enemy tail can be eaten; any other enemy body hit is a loss.
+          const p1HitP2Idx = snake2.findIndex(seg => seg.x===nx && seg.y===ny);
+          if(p1HitP2Idx !== -1){
+            if(p1HitP2Idx === 0){
+              // head-to-head: both lose and scores reset
               score = 0; score2 = 0;
               player2ScoreDisplay.textContent = String(score2);
               player1ScoreDisplay.textContent = String(score);
               p1Lose = true; p2Lose = true;
+              p1LoseReason = 'Head-to-head collision';
+              p2LoseReason = 'Head-to-head collision';
+              setAttacker('both');
             } else {
-              // body collision: cut p2's snake
-              const hitIdx = snake2.findIndex(seg => seg.x===nx && seg.y===ny);
-              if(hitIdx > 0){
-                const tailLen = snake2.length - hitIdx;
-                for(let i = 0; i < tailLen; i++){
-                  const seg = snake2.pop();
-                  apples.push(seg);
-                }
-                score2 -= tailLen; if(score2 < 0) score2 = 0;
+              const p2TailIdx = snake2.length - 1;
+              const canEatTail = p1HitP2Idx === p2TailIdx && snake2.length > 3;
+              if(canEatTail){
+                snake2.pop();
+                score++;
+                if(score2 > 0) score2--;
                 player2ScoreDisplay.textContent = String(score2);
                 player1ScoreDisplay.textContent = String(score);
-                if(snake2.length <= 2){
-                  p2Lose = true;
-                }
+              } else if(p1HitP2Idx === p2TailIdx && snake2.length === 3){
+                // Special mayhem rule: if defender is at minimum size, tail hit ends game in attacker's favor.
+                p2Lose = true;
+                p2LoseReason = 'Player 1 ate Player 2 tail at minimum size';
+                setAttacker('p1');
+              } else {
+                p1Lose = true;
+                p1LoseReason = 'Player 1 hit Player 2 body';
+                setAttacker('p1');
               }
             }
           }
-          // p2 collides with p1
-          if(snake.some(seg => seg.x===nx2 && seg.y===ny2)){
-            if(head.x===nx2 && head.y===ny2){
-              // head-to-head collision: both scores go to 0
+
+          const p2HitP1Idx = snake.findIndex(seg => seg.x===nx2 && seg.y===ny2);
+          if(p2HitP1Idx !== -1){
+            if(p2HitP1Idx === 0){
+              // head-to-head: both lose and scores reset
               score = 0; score2 = 0;
-              player2ScoreDisplay.textContent = String(score);
-              player1ScoreDisplay.textContent = String(score2);
+              player2ScoreDisplay.textContent = String(score2);
+              player1ScoreDisplay.textContent = String(score);
               p1Lose = true; p2Lose = true;
+              p1LoseReason = 'Head-to-head collision';
+              p2LoseReason = 'Head-to-head collision';
+              setAttacker('both');
             } else {
-              // body collision: cut p1's snake
-              const hitIdx = snake.findIndex(seg => seg.x===nx2 && seg.y===ny2);
-              if(hitIdx > 0){
-                const tailLen = snake.length - hitIdx;
-                for(let i = 0; i < tailLen; i++){
-                  const seg = snake.pop();
-                  apples.push(seg);
-                }
-                score -= tailLen; if(score < 0) score = 0;
+              const p1TailIdx = snake.length - 1;
+              const canEatTail = p2HitP1Idx === p1TailIdx && snake.length > 3;
+              if(canEatTail){
+                snake.pop();
+                score2++;
+                if(score > 0) score--;
                 player2ScoreDisplay.textContent = String(score2);
                 player1ScoreDisplay.textContent = String(score);
-                if(snake.length <= 2){
-                  p1Lose = true;
-                }
+              } else if(p2HitP1Idx === p1TailIdx && snake.length === 3){
+                // Special mayhem rule: if defender is at minimum size, tail hit ends game in attacker's favor.
+                p1Lose = true;
+                p1LoseReason = 'Player 2 ate Player 1 tail at minimum size';
+                setAttacker('p2');
+              } else {
+                p2Lose = true;
+                p2LoseReason = 'Player 2 hit Player 1 body';
+                setAttacker('p2');
               }
             }
           }
@@ -289,9 +397,32 @@
       }
 
       if(p1Lose || p2Lose){
-        if(p1Lose && p2Lose) endGame('Draw','both collided');
-        else if(p1Lose) endGame('Player 2','Player 1 hit something');
-        else endGame('Player 1','Player 2 hit something');
+        // Show final frame: only attacker advances, and attacker is drawn on top.
+        if(collisionAttacker === 'p1'){
+          snake.unshift({x:nx, y:ny});
+          snake.pop();
+          draw('p1');
+        } else if(collisionAttacker === 'p2'){
+          snake2.unshift({x:nx2, y:ny2});
+          snake2.pop();
+          draw('p2');
+        } else {
+          snake.unshift({x:nx, y:ny});
+          snake2.unshift({x:nx2, y:ny2});
+          snake.pop();
+          snake2.pop();
+          draw();
+        }
+
+        isGameActive = false;
+        clearInterval(moveInterval);
+        if(p1Lose && p2Lose){
+          setTimeout(()=> endGame('Draw', p1LoseReason || p2LoseReason || 'both collided'), 450);
+        } else if(p1Lose){
+          setTimeout(()=> endGame('Player 2', p1LoseReason || 'Player 1 hit something'), 450);
+        } else {
+          setTimeout(()=> endGame('Player 1', p2LoseReason || 'Player 2 hit something'), 450);
+        }
         return;
       }
 
@@ -299,16 +430,44 @@
       snake2.unshift({x:nx2, y:ny2});
 
       let ate1 = false, ate2 = false;
+      let usedBomb1 = false, usedBomb2 = false;
       for(let i=apples.length-1;i>=0;i--){
         const a = apples[i];
         if(!ate1 && nx===a.x && ny===a.y){ score++; apples.splice(i,1); player1ScoreDisplay.textContent = String(score); ate1 = true; continue; }
         if(!ate2 && nx2===a.x && ny2===a.y){ score2++; apples.splice(i,1); player2ScoreDisplay.textContent = String(score2); ate2 = true; }
       }
 
-      if(!ate1) snake.pop();
-      if(!ate2) snake2.pop();
+      if(isBombsMode){
+        if(p1BombIdx !== -1){
+          score = Math.max(0, score - 2);
+          player1ScoreDisplay.textContent = String(score);
+          for(let i=0;i<3;i++){
+            if(snake.length > 1) snake.pop();
+          }
+          usedBomb1 = true;
+        }
+        if(p2BombIdx !== -1){
+          score2 = Math.max(0, score2 - 2);
+          player2ScoreDisplay.textContent = String(score2);
+          for(let i=0;i<3;i++){
+            if(snake2.length > 1) snake2.pop();
+          }
+          usedBomb2 = true;
+        }
+        if(usedBomb1 || usedBomb2){
+          const hitBombIndices = [];
+          if(p1BombIdx !== -1) hitBombIndices.push(p1BombIdx);
+          if(p2BombIdx !== -1 && p2BombIdx !== p1BombIdx) hitBombIndices.push(p2BombIdx);
+          hitBombIndices.sort((a,b)=>b-a).forEach(idx => bombs.splice(idx,1));
+          placeBombs();
+        }
+      }
+
+      if(!ate1 && !usedBomb1) snake.pop();
+      if(!ate2 && !usedBomb2) snake2.pop();
 
       placeApples();
+      if(isBombsMode) placeBombs();
       draw();
     }
 
@@ -366,7 +525,9 @@
           // player2 left side, moving right
           snake2 = [ {x: Math.floor(COLS*0.25), y: Math.floor(ROWS/2)}, {x: Math.floor(COLS*0.25)-1, y: Math.floor(ROWS/2)}, {x: Math.floor(COLS*0.25)-2, y: Math.floor(ROWS/2)} ];
           dir2 = {x:1,y:0}; pendingDirs2 = [];
+          bombs = [];
           placeApples();
+          if(isBombsMode) placeBombs();
           moveInterval = setInterval(moveTick, 120);
         }, 250);
       },1000);
