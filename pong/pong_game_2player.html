@@ -484,6 +484,7 @@ function moveBall() {
     // Bounce top/bottom
     if (ballY <= 0 || ballY + ballSize >= canvas.height) {
         ballSpeedY *= -1;
+        ballDirectionY *= -1;
     }
 
     // Player 1 paddle collision (left) - only if moving left
@@ -496,6 +497,8 @@ function moveBall() {
     ) {
         ballX = 10 + paddleWidth;
         ballSpeedX *= -1;
+        ballDirectionX *= -1;
+        increaseBallSpeed();
     }
 
     // Player 2 paddle collision (right) - only if moving right
@@ -508,6 +511,8 @@ function moveBall() {
     ) {
         ballX = canvas.width - 20 - ballSize;
         ballSpeedX *= -1;
+        ballDirectionX *= -1;
+        increaseBallSpeed();
     }
 
     // Scoring
