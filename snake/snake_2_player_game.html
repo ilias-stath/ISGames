@@ -129,7 +129,7 @@
     const isMayhem = duoVariant === 'mayhem' || duoVariant === 'bombs';
     const isBombsMode = isMayhem;
     if(isMayhem){
-      mayhemHint.textContent = 'Mayhem mode: tail battles + bombs. If enemy has only 3 body parts and you hit the tail, they lose. Bombs are dangerous: with score under 2 or size 3, bomb hit is instant defeat.';
+      mayhemHint.textContent = 'Mayhem mode: tail battles + bombs + speed powerups. If enemy has only 3 body parts and you hit the tail, they lose. Bombs are dangerous: with score under 2 or size 3, bomb hit is instant defeat. Grab golden powerups for a 2x speed boost!';
       mayhemHint.classList.remove('hidden');
     } else {
       mayhemHint.classList.add('hidden');
@@ -146,11 +146,20 @@
 
     let apples = [];
     let bombs = [];
+    let powerups = [];
     const MAX_BOMBS = 3;
+    const MAX_POWERUPS = 1;
     let score = 0;
     let score2 = 0;
     let isGameActive = false;
     let moveInterval = null;
+    let baseSpeed = 120;
+    let p1SpeedBoost = 1;
+    let p2SpeedBoost = 1;
+    let p1BoostEnd = 0;
+    let p2BoostEnd = 0;
+    let p1LastMoveTime = 0;
+    let p2LastMoveTime = 0;
 
     function placeApples(){
       const target = Math.max(1, Math.floor(Math.random()*3) + 1);
@@ -158,11 +167,29 @@
         let spot; let tries = 0;
         while(true){
           spot = {x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS)};
-          const occupied = snake.some(s=>s.x===spot.x && s.y===spot.y) || snake2.some(s=>s.x===spot.x && s.y===spot.y) || apples.some(a=>a.x===spot.x && a.y===spot.y) || bombs.some(b=>b.x===spot.x && b.y===spot.y);
+          const occupied = snake.some(s=>s.x===spot.x && s.y===spot.y) || snake2.some(s=>s.x===spot.x && s.y===spot.y) || apples.some(a=>a.x===spot.x && a.y===spot.y) || bombs.some(b=>b.x===spot.x && b.y===spot.y) || powerups.some(p=>p.x===spot.x && p.y===spot.y);
           if(!occupied) break;
           if(++tries>200) break;
         }
         apples.push(spot);
+      }
+    }
+
+    function placePowerups(){
+      if(!isMayhem){
+        powerups = [];
+        return;
+      }
+      while(powerups.length < MAX_POWERUPS){
+        let spot;
+        let tries = 0;
+        while(true){
+          spot = {x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS)};
+          const occupied = snake.some(s=>s.x===spot.x && s.y===spot.y) || snake2.some(s=>s.x===spot.x && s.y===spot.y) || apples.some(a=>a.x===spot.x && a.y===spot.y) || bombs.some(b=>b.x===spot.x && b.y===spot.y) || powerups.some(p=>p.x===spot.x && p.y===spot.y);
+          if(!occupied) break;
+          if(++tries>300) break;
+        }
+        powerups.push(spot);
       }
     }
 
@@ -224,6 +251,24 @@
         }
       }
 
+      if(isMayhem){
+        for(const powerup of powerups){
+          const px = powerup.x * CELL + CELL/2;
+          const py = powerup.y * CELL + CELL/2;
+          const pr = CELL*0.35;
+          const grad = ctx.createRadialGradient(px-pr*0.3, py-pr*0.3, 0, px, py, pr);
+          grad.addColorStop(0, '#ffd700');
+          grad.addColorStop(1, '#ffaa00');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(px, py, pr, 0, Math.PI*2);
+          ctx.fill();
+          ctx.strokeStyle = '#fff8dc';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      }
+
       function drawSnake1(){
         for(let i=0;i<snake.length;i++){
           const s = snake[i]; const x = s.x*CELL, y = s.y*CELL;
@@ -259,14 +304,41 @@
     }
 
     function moveTick(){
-      if(pendingDirs.length){
+      // Update speed boosts
+      const now = Date.now();
+      if(now > p1BoostEnd) p1SpeedBoost = 1;
+      if(now > p2BoostEnd) p2SpeedBoost = 1;
+
+      // Calculate move delays based on speed boosts
+      const p1MoveDelay = baseSpeed / p1SpeedBoost;
+      const p2MoveDelay = baseSpeed / p2SpeedBoost;
+
+      // Check if each snake is ready to move
+      const p1ShouldMove = now - p1LastMoveTime >= p1MoveDelay;
+      const p2ShouldMove = now - p2LastMoveTime >= p2MoveDelay;
+
+      if(!p1ShouldMove && !p2ShouldMove) return;
+
+      if(p1ShouldMove && pendingDirs.length){
         dir = pendingDirs.shift();
       }
-      if(pendingDirs2.length){
+      if(p2ShouldMove && pendingDirs2.length){
         dir2 = pendingDirs2.shift();
       }
-      const head = snake[0]; const nx = (head.x + dir.x + COLS) % COLS; const ny = (head.y + dir.y + ROWS) % ROWS;
-      const head2 = snake2[0]; const nx2 = (head2.x + dir2.x + COLS) % COLS; const ny2 = (head2.y + dir2.y + ROWS) % ROWS;
+
+      let nx = null, ny = null, nx2 = null, ny2 = null;
+      if(p1ShouldMove){
+        const head = snake[0];
+        nx = (head.x + dir.x + COLS) % COLS;
+        ny = (head.y + dir.y + ROWS) % ROWS;
+        p1LastMoveTime = now;
+      }
+      if(p2ShouldMove){
+        const head2 = snake2[0];
+        nx2 = (head2.x + dir2.x + COLS) % COLS;
+        ny2 = (head2.y + dir2.y + ROWS) % ROWS;
+        p2LastMoveTime = now;
+      }
 
       let p1Lose = false, p2Lose = false;
       let p1LoseReason = '', p2LoseReason = '';
@@ -279,19 +351,21 @@
         }
       }
       // self
-      if(snake.some((seg, idx)=> idx>0 && seg.x===nx && seg.y===ny)){
+      if(p1ShouldMove && snake.some((seg, idx)=> idx>0 && seg.x===nx && seg.y===ny)){
         p1Lose = true;
         p1LoseReason = 'Player 1 hit their own body';
         setAttacker('p1');
       }
-      if(snake2.some((seg, idx)=> idx>0 && seg.x===nx2 && seg.y===ny2)){
+      if(p2ShouldMove && snake2.some((seg, idx)=> idx>0 && seg.x===nx2 && seg.y===ny2)){
         p2Lose = true;
         p2LoseReason = 'Player 2 hit their own body';
         setAttacker('p2');
       }
 
-      const p1BombIdx = isBombsMode ? bombs.findIndex(b => b.x===nx && b.y===ny) : -1;
-      const p2BombIdx = isBombsMode ? bombs.findIndex(b => b.x===nx2 && b.y===ny2) : -1;
+      const p1BombIdx = p1ShouldMove && isBombsMode ? bombs.findIndex(b => b.x===nx && b.y===ny) : -1;
+      const p2BombIdx = p2ShouldMove && isBombsMode ? bombs.findIndex(b => b.x===nx2 && b.y===ny2) : -1;
+      const p1PowerupIdx = p1ShouldMove && isMayhem ? powerups.findIndex(p => p.x===nx && p.y===ny) : -1;
+      const p2PowerupIdx = p2ShouldMove && isMayhem ? powerups.findIndex(p => p.x===nx2 && p.y===ny2) : -1;
 
       if(isBombsMode){
         if(p1BombIdx !== -1 && (score < 2 || snake.length <= 3)){
@@ -307,7 +381,7 @@
       }
 
       // Check if heads move to the same position (head-to-head collision)
-      if(nx === nx2 && ny === ny2){
+      if(p1ShouldMove && p2ShouldMove && nx === nx2 && ny === ny2){
         p1Lose = true; p2Lose = true;
         p1LoseReason = 'Head-to-head collision';
         p2LoseReason = 'Head-to-head collision';
@@ -316,19 +390,19 @@
         // collision with other player body/head
         if(!isMayhem){
           // classic mode: any collision is a loss
-          if(snake2.some(seg => seg.x===nx && seg.y===ny)){
+          if(p1ShouldMove && snake2.some(seg => seg.x===nx && seg.y===ny)){
             p1Lose = true;
             p1LoseReason = 'Player 1 hit Player 2';
             setAttacker('p1');
           }
-          if(snake.some(seg => seg.x===nx2 && seg.y===ny2)){
+          if(p2ShouldMove && snake.some(seg => seg.x===nx2 && seg.y===ny2)){
             p2Lose = true;
             p2LoseReason = 'Player 2 hit Player 1';
             setAttacker('p2');
           }
         } else {
           // mayhem mode: only enemy tail can be eaten; any other enemy body hit is a loss.
-          const p1HitP2Idx = snake2.findIndex(seg => seg.x===nx && seg.y===ny);
+          const p1HitP2Idx = p1ShouldMove ? snake2.findIndex(seg => seg.x===nx && seg.y===ny) : -1;
           if(p1HitP2Idx !== -1){
             if(p1HitP2Idx === 0){
               // head-to-head: both lose and scores reset
@@ -361,7 +435,7 @@
             }
           }
 
-          const p2HitP1Idx = snake.findIndex(seg => seg.x===nx2 && seg.y===ny2);
+          const p2HitP1Idx = p2ShouldMove ? snake.findIndex(seg => seg.x===nx2 && seg.y===ny2) : -1;
           if(p2HitP1Idx !== -1){
             if(p2HitP1Idx === 0){
               // head-to-head: both lose and scores reset
@@ -398,15 +472,15 @@
 
       if(p1Lose || p2Lose){
         // Show final frame: only attacker advances, and attacker is drawn on top.
-        if(collisionAttacker === 'p1'){
+        if(collisionAttacker === 'p1' && p1ShouldMove){
           snake.unshift({x:nx, y:ny});
           snake.pop();
           draw('p1');
-        } else if(collisionAttacker === 'p2'){
+        } else if(collisionAttacker === 'p2' && p2ShouldMove){
           snake2.unshift({x:nx2, y:ny2});
           snake2.pop();
           draw('p2');
-        } else {
+        } else if(p1ShouldMove && p2ShouldMove) {
           snake.unshift({x:nx, y:ny});
           snake2.unshift({x:nx2, y:ny2});
           snake.pop();
@@ -426,15 +500,15 @@
         return;
       }
 
-      snake.unshift({x:nx, y:ny});
-      snake2.unshift({x:nx2, y:ny2});
+      if(p1ShouldMove) snake.unshift({x:nx, y:ny});
+      if(p2ShouldMove) snake2.unshift({x:nx2, y:ny2});
 
       let ate1 = false, ate2 = false;
       let usedBomb1 = false, usedBomb2 = false;
       for(let i=apples.length-1;i>=0;i--){
         const a = apples[i];
-        if(!ate1 && nx===a.x && ny===a.y){ score++; apples.splice(i,1); player1ScoreDisplay.textContent = String(score); ate1 = true; continue; }
-        if(!ate2 && nx2===a.x && ny2===a.y){ score2++; apples.splice(i,1); player2ScoreDisplay.textContent = String(score2); ate2 = true; }
+        if(!ate1 && p1ShouldMove && nx===a.x && ny===a.y){ score++; apples.splice(i,1); player1ScoreDisplay.textContent = String(score); ate1 = true; continue; }
+        if(!ate2 && p2ShouldMove && nx2===a.x && ny2===a.y){ score2++; apples.splice(i,1); player2ScoreDisplay.textContent = String(score2); ate2 = true; }
       }
 
       if(isBombsMode){
@@ -463,11 +537,26 @@
         }
       }
 
-      if(!ate1 && !usedBomb1) snake.pop();
-      if(!ate2 && !usedBomb2) snake2.pop();
+      if(!ate1 && !usedBomb1 && p1ShouldMove) snake.pop();
+      if(!ate2 && !usedBomb2 && p2ShouldMove) snake2.pop();
+
+      // Handle powerups
+      if(p1PowerupIdx !== -1){
+        p1SpeedBoost = 2;
+        p1BoostEnd = Date.now() + 3000;
+        powerups.splice(p1PowerupIdx, 1);
+        placePowerups();
+      }
+      if(p2PowerupIdx !== -1){
+        p2SpeedBoost = 2;
+        p2BoostEnd = Date.now() + 3000;
+        powerups.splice(p2PowerupIdx, 1);
+        placePowerups();
+      }
 
       placeApples();
       if(isBombsMode) placeBombs();
+      if(isMayhem) placePowerups();
       draw();
     }
 
@@ -526,9 +615,16 @@
           snake2 = [ {x: Math.floor(COLS*0.25), y: Math.floor(ROWS/2)}, {x: Math.floor(COLS*0.25)-1, y: Math.floor(ROWS/2)}, {x: Math.floor(COLS*0.25)-2, y: Math.floor(ROWS/2)} ];
           dir2 = {x:1,y:0}; pendingDirs2 = [];
           bombs = [];
+          p1SpeedBoost = 1;
+          p2SpeedBoost = 1;
+          p1BoostEnd = 0;
+          p2BoostEnd = 0;
+          p1LastMoveTime = Date.now();
+          p2LastMoveTime = Date.now();
           placeApples();
           if(isBombsMode) placeBombs();
-          moveInterval = setInterval(moveTick, 120);
+          if(isMayhem) placePowerups();
+          moveInterval = setInterval(moveTick, 30);
         }, 250);
       },1000);
     }
