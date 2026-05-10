@@ -193,18 +193,40 @@
       }
     }
 
-    function placeBombs(){
+    function placeBombs(starting = false){
       if(!isBombsMode){
         bombs = [];
         return;
       }
+      const startRow = Math.floor(ROWS/2);
+      const centerMin = Math.floor(COLS * 0.4);
+      const centerMax = Math.ceil(COLS * 0.6);
+      const minDist = 4; // minimum distance from snakes' heads at start
       while(bombs.length < MAX_BOMBS){
         let spot;
         let tries = 0;
         while(true){
           spot = {x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS)};
           const occupied = snake.some(s=>s.x===spot.x && s.y===spot.y) || snake2.some(s=>s.x===spot.x && s.y===spot.y) || apples.some(a=>a.x===spot.x && a.y===spot.y) || bombs.some(b=>b.x===spot.x && b.y===spot.y);
-          if(!occupied) break;
+          if(!occupied){
+            // If this is the starting placement, avoid spawning bombs near the snakes' front
+            if(starting && snake.length && snake2.length){
+              const head1 = snake[0];
+              const head2 = snake2[0];
+              const tooCloseToHead1 = Math.abs(spot.x - head1.x) < minDist && Math.abs(spot.y - head1.y) < minDist;
+              const tooCloseToHead2 = Math.abs(spot.x - head2.x) < minDist && Math.abs(spot.y - head2.y) < minDist;
+              if(tooCloseToHead1 || tooCloseToHead2){
+                if(++tries>300) break;
+                continue; // try another spot
+              }
+              // If the spot is on the starting row, only allow it near the center
+              if(spot.y === startRow && (spot.x < centerMin || spot.x > centerMax)){
+                if(++tries>300) break;
+                continue;
+              }
+            }
+            break;
+          }
           if(++tries>300) break;
         }
         bombs.push(spot);
@@ -622,7 +644,7 @@
           p1LastMoveTime = Date.now();
           p2LastMoveTime = Date.now();
           placeApples();
-          if(isBombsMode) placeBombs();
+          if(isBombsMode) placeBombs(true);
           if(isMayhem) placePowerups();
           moveInterval = setInterval(moveTick, 30);
         }, 250);
