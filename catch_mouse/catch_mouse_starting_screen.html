@@ -44,10 +44,57 @@
       color:var(--text);
     }
     p{margin:0 0 18px;color:var(--muted)}
-    .buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+    .buttons{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      justify-content:center;
+      align-items:center;
+    }
+    .speed-wrap{
+      width:min(260px, 100%);
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--panel-border);
+      background:rgba(255,255,255,0.55);
+      text-align:left;
+    }
+    .speed-row{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:8px;
+    }
+    .speed-label{
+      font-size:0.78rem;
+      letter-spacing:0.12em;
+      text-transform:uppercase;
+      color:var(--muted);
+      font-weight:700;
+    }
+    .speed-value{
+      font-weight:800;
+      color:#ec4899;
+    }
+    input[type="range"].speed{
+      width:100%;
+      accent-color:#ec4899;
+    }
+    .speed-hint{
+      margin-top:6px;
+      font-size:0.85rem;
+      color:var(--muted);
+    }
     .btn{
-      border:0;padding:12px 18px;border-radius:12px;font-weight:700;cursor:pointer;font-size:1rem;
+      border:0;
+      padding:12px 18px;
+      border-radius:12px;
+      font-weight:700;
+      cursor:pointer;
+      font-size:1rem;
       transition:transform .12s ease,box-shadow .12s ease;
+      width:min(260px, 100%);
     }
     .btn:focus{outline:2px solid rgba(123,167,255,0.25)}
     .start{background:linear-gradient(135deg,#ec4899,#ff1493,#ff69b4,#ff4d7d);color:#ffffff;box-shadow:0 6px 20px rgba(236,72,153,0.35)}
@@ -62,6 +109,23 @@
     <p>Catch the mouse — test your reflexes. Choose to start or go back home.</p>
     <div class="buttons">
       <button class="btn start" id="startBtn">Start Game</button>
+
+      <div class="speed-wrap" role="group" aria-label="Speed selector">
+        <div class="speed-row">
+          <span class="speed-label">Speed</span>
+          <span class="speed-value"><span id="speedValue">1</span>x</span>
+        </div>
+        <input class="speed" id="speedSlider" type="range" min="1" max="5" step="1" value="1" list="speedTicks" />
+        <datalist id="speedTicks">
+          <option value="1"></option>
+          <option value="2"></option>
+          <option value="3"></option>
+          <option value="4"></option>
+          <option value="5"></option>
+        </datalist>
+        <div class="speed-hint">Higher = faster</div>
+      </div>
+
       <button class="btn back" id="homeBtn">Back to Home</button>
     </div>
     <div class="hint" id="catchPhrase"></div>
@@ -75,6 +139,23 @@
       'Reflexes > Luck.'
     ];
     document.getElementById('catchPhrase').textContent = phrases[Math.floor(Math.random()*phrases.length)];
+
+    const speedSlider = document.getElementById('speedSlider');
+    const speedValue = document.getElementById('speedValue');
+    const SPEED_KEY = 'catchMouseSpeed';
+
+    // Restore previous selection if present
+    const storedSpeed = Number(sessionStorage.getItem(SPEED_KEY));
+    const initialSpeed = Number.isFinite(storedSpeed) && storedSpeed >= 1 && storedSpeed <= 5 ? storedSpeed : 1;
+    speedSlider.value = String(initialSpeed);
+    speedValue.textContent = String(initialSpeed);
+    sessionStorage.setItem(SPEED_KEY, String(initialSpeed));
+
+    speedSlider.addEventListener('input', () => {
+      const v = Number(speedSlider.value);
+      speedValue.textContent = String(v);
+      sessionStorage.setItem(SPEED_KEY, String(v));
+    });
 
     document.getElementById('startBtn').addEventListener('click', ()=>{
       sessionStorage.setItem('catchMouseStart','true');

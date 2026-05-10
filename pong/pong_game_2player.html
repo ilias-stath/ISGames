@@ -483,28 +483,31 @@ function moveBall() {
 
     // Bounce top/bottom
     if (ballY <= 0 || ballY + ballSize >= canvas.height) {
-        ballDirectionY *= -1;
-        updateBallSpeed();
+        ballSpeedY *= -1;
     }
 
-    // Player paddle collision
+    // Player 1 paddle collision (left) - only if moving left
     if (
+        ballSpeedX < 0 &&
         ballX <= 20 &&
+        ballX + ballSize >= 10 &&
         ballY + ballSize >= playerY &&
         ballY <= playerY + paddleHeight
     ) {
-        ballDirectionX = 1;
-        increaseBallSpeed();
+        ballX = 10 + paddleWidth;
+        ballSpeedX *= -1;
     }
 
-    // AI paddle collision
+    // Player 2 paddle collision (right) - only if moving right
     if (
+        ballSpeedX > 0 &&
         ballX + ballSize >= canvas.width - 20 &&
+        ballX <= canvas.width - 10 &&
         ballY + ballSize >= player2Y &&
         ballY <= player2Y + paddleHeight
     ) {
-        ballDirectionX = -1;
-        increaseBallSpeed();
+        ballX = canvas.width - 20 - ballSize;
+        ballSpeedX *= -1;
     }
 
     // Scoring

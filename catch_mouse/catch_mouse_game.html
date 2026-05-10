@@ -259,6 +259,18 @@
         let timeLeft = 60;
         let isGameActive = false;
         let timerInterval;
+        // Movement interval control: linear interpolation
+        // slider=1 => 1.0x interval (current speed)
+        // slider=5 => 0.4x interval (time / 2.5)
+        const BASE_MOVE_INTERVAL = 1000; // ms
+        const SPEED_KEY = 'catchMouseSpeed';
+        const storedSpeed = Number(sessionStorage.getItem(SPEED_KEY));
+        const speedChoice = Number.isFinite(storedSpeed) && storedSpeed >= 1 && storedSpeed <= 5 ? storedSpeed : 1;
+
+        const t = (speedChoice - 1) / 4; // 0..1
+        const intervalScale = 1 + (0.4 - 1) * t; // 1.0 -> 0.4
+        const MOVE_INTERVAL = Math.max(120, Math.round(BASE_MOVE_INTERVAL * intervalScale));
+         let moveIntervalId = null;
 
         function moveButton() {
             if (!isGameActive) return;
@@ -280,7 +292,7 @@
             event.stopPropagation();
             score++;
             scoreDisplay.textContent = String(score);
-            moveButton();
+            // Do not call moveButton() here — movement is handled by a single interval
         });
 
         gameArea.addEventListener("click", (event) => {
@@ -316,6 +328,10 @@
         function endGame() {
             isGameActive = false;
             clearInterval(timerInterval);
+            if (moveIntervalId !== null) {
+                clearInterval(moveIntervalId);
+                moveIntervalId = null;
+            }
             sessionStorage.setItem('catchMouseScore', String(score));
             setTimeout(() => {
                 location.href = 'catch_mouse_score_screen.html';
@@ -343,7 +359,8 @@
                     isGameActive = true;
                     startOverlay.classList.add("hidden");
                     timerInterval = setInterval(updateTimer, 1000);
-                    setInterval(moveButton, 1200);
+                    // Start a single moving interval at a fixed pace and do an initial move
+                    moveIntervalId = setInterval(moveButton, MOVE_INTERVAL);
                     moveButton();
                 }, 300);
             }, 1000);

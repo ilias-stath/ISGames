@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Pong Game</title>
+<title>Pong Game - Extra Hard</title>
 <style>
     body {
         margin: 0;
@@ -151,31 +151,6 @@
             0 0 0 1px rgba(255, 255, 255, 0.06);
         animation: cardPulse 1.8s ease-in-out infinite, cardFloat 4s ease-in-out infinite;
     }
-    .overlay-card::before,
-    .overlay-card::after {
-        content: "";
-        position: absolute;
-        inset: auto;
-        border-radius: 50%;
-        pointer-events: none;
-        filter: blur(2px);
-    }
-    .overlay-card::before {
-        width: 180px;
-        height: 180px;
-        left: -40px;
-        top: -70px;
-        background: radial-gradient(circle, rgba(138, 180, 255, 0.26), transparent 70%);
-        animation: orbDrift 5s ease-in-out infinite;
-    }
-    .overlay-card::after {
-        width: 140px;
-        height: 140px;
-        right: -45px;
-        bottom: -60px;
-        background: radial-gradient(circle, rgba(127, 242, 195, 0.18), transparent 70%);
-        animation: orbDrift 6.5s ease-in-out infinite reverse;
-    }
     .overlay-phrase {
         position: relative;
         z-index: 1;
@@ -216,18 +191,6 @@
     @keyframes phraseShimmer {
         0% { background-position: 0% 50%; }
         100% { background-position: 100% 50%; }
-    }
-    @keyframes cardPulse {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-2px); }
-    }
-    @keyframes cardFloat {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-6px); }
-    }
-    @keyframes orbDrift {
-        0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.8; }
-        50% { transform: translate(14px, -10px) scale(1.08); opacity: 1; }
     }
     @keyframes phraseFloat {
         0%, 100% { transform: translateY(0); }
@@ -301,7 +264,7 @@
 </div>
 
 <script>
-if (sessionStorage.getItem('pongAccess') !== 'hard') {
+if (sessionStorage.getItem('pongAccess') !== 'extra_hard') {
     location.replace('pong_starting_screen.html');
 }
 
@@ -316,15 +279,15 @@ const timerHudItem = document.querySelector(".hud-item.timer");
 const startOverlay = document.getElementById("startOverlay");
 const overlayPhrase = document.getElementById("overlayPhrase");
 const overlayCount = document.getElementById("overlayCount");
+
 const startPhrases = [
-    "PING! PONG! GO!",
-    "Ready, Set, BOUNCE!",
-    "Loading more pixels for you to miss...",
-    "Serve it up!",
-    "Keep your eyes on the square. It is the ball!",
-    "Defend your side!",
-    "Prepare for a paddle battle!"
+    "Extra Hard: the AI reads your mind.",
+    "Good luck. You'll need it.",
+    "The paddle is not your friend.",
+    "Speed ramps up. Stay sharp!",
+    "Prediction mode enabled..."
 ];
+
 let isGameActive = false;
 
 // Paddle settings
@@ -334,10 +297,10 @@ let playerY = canvas.height / 2 - paddleHeight / 2;
 let aiY = canvas.height / 2 - paddleHeight / 2;
 const paddleSpeed = 7;
 
-// Ball settings
+// Ball settings (speed increases like PvP)
 const initialBallSpeed = 5;
-const ballSpeedStep = 0.3;
-const maxBallSpeed = 20;
+const ballSpeedStep = 0.35;
+const maxBallSpeed = 22;
 let ballX = canvas.width / 2;
 let ballY = canvas.height / 2;
 let ballSize = 10;
@@ -446,12 +409,6 @@ function movePlayer() {
     if (downPressed && playerY + paddleHeight < canvas.height) playerY += paddleSpeed;
 }
 
-function moveAI() {
-    const aiCenter = aiY + paddleHeight / 2;
-    if (aiCenter < ballY) aiY += 4;
-    else aiY -= 4;
-}
-
 function updateBallSpeed() {
     ballSpeedX = ballSpeed * ballDirectionX;
     ballSpeedY = ballSpeed * ballDirectionY;
@@ -462,6 +419,47 @@ function increaseBallSpeed() {
     updateBallSpeed();
 }
 
+// Predict where the ball will cross the AI paddle x (accounts for wall bounces)
+function predictBallY(targetX) {
+    // Only predict when ball is moving towards the AI
+    if (ballSpeedX <= 0) return canvas.height / 2;
+
+    const ballCenterY = ballY + ballSize / 2;
+    const effectiveHeight = canvas.height - ballSize;
+
+    const dx = targetX - (ballX + ballSize);
+    if (dx <= 0) return ballCenterY;
+
+    const steps = dx / ballSpeedX;
+    let predicted = ballCenterY + ballSpeedY * steps;
+
+    // Reflect predicted position off top/bottom walls (periodic reflection)
+    const period = 2 * effectiveHeight;
+    predicted = ((predicted % period) + period) % period;
+    if (predicted > effectiveHeight) predicted = period - predicted;
+
+    return predicted;
+}
+
+function moveAI() {
+    // Predict based on trajectory when coming towards AI
+    const aiPaddleX = canvas.width - 20;
+    const targetX = aiPaddleX;
+    const desiredYCenter = predictBallY(targetX);
+
+    const aiCenter = aiY + paddleHeight / 2;
+    const diff = desiredYCenter - aiCenter;
+
+    // Faster AI movement when the ball is fast
+    const aiMaxStep = Math.min(10, 4 + (ballSpeed - initialBallSpeed) * 0.4);
+
+    if (Math.abs(diff) > 2) {
+        aiY += Math.sign(diff) * aiMaxStep;
+    }
+
+    aiY = Math.max(0, Math.min(canvas.height - paddleHeight, aiY));
+}
+
 function moveBall() {
     ballX += ballSpeedX;
     ballY += ballSpeedY;
@@ -469,6 +467,7 @@ function moveBall() {
     // Bounce top/bottom
     if (ballY <= 0 || ballY + ballSize >= canvas.height) {
         ballSpeedY *= -1;
+        ballDirectionY *= -1;
     }
 
     // Player paddle collision (only if moving left)
@@ -479,8 +478,10 @@ function moveBall() {
         ballY + ballSize >= playerY &&
         ballY <= playerY + paddleHeight
     ) {
-        ballX = 10 + paddleWidth; // push outside of paddle
+        ballX = 10 + paddleWidth;
         ballSpeedX *= -1;
+        ballDirectionX *= -1;
+        increaseBallSpeed();
     }
 
     // AI paddle collision (only if moving right)
@@ -491,8 +492,10 @@ function moveBall() {
         ballY + ballSize >= aiY &&
         ballY <= aiY + paddleHeight
     ) {
-        ballX = canvas.width - 20 - ballSize; // push outside of paddle
+        ballX = canvas.width - 20 - ballSize;
         ballSpeedX *= -1;
+        ballDirectionX *= -1;
+        increaseBallSpeed();
     }
 
     // Scoring
@@ -535,7 +538,7 @@ function updateTimer() {
 
 function endGame() {
     sessionStorage.setItem('pongResultAccess', 'true');
-    sessionStorage.setItem('pongLastMode', 'hard');
+    sessionStorage.setItem('pongLastMode', 'extra_hard');
     sessionStorage.setItem('pongPlayerScore', String(playerScore));
     sessionStorage.setItem('pongAiScore', String(aiScore));
     location.replace('pong_score_sreeen.html');

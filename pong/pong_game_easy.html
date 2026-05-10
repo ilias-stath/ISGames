@@ -464,21 +464,27 @@ function moveBall() {
         ballSpeedY *= -1;
     }
 
-    // Player paddle collision
+    // Player paddle collision (only if moving left)
     if (
+        ballSpeedX < 0 &&
         ballX <= 20 &&
+        ballX + ballSize >= 10 &&
         ballY + ballSize >= playerY &&
         ballY <= playerY + paddleHeight
     ) {
+        ballX = 10 + paddleWidth; // push outside of paddle
         ballSpeedX *= -1;
     }
 
-    // AI paddle collision
+    // AI paddle collision (only if moving right)
     if (
+        ballSpeedX > 0 &&
         ballX + ballSize >= canvas.width - 20 &&
+        ballX <= canvas.width - 10 &&
         ballY + ballSize >= aiY &&
         ballY <= aiY + paddleHeight
     ) {
+        ballX = canvas.width - 20 - ballSize; // push outside of paddle
         ballSpeedX *= -1;
     }
 

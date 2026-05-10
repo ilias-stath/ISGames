@@ -189,6 +189,7 @@
 	<div class="score-card" id="scoreCard">
 		<div class="score-label">Final Score</div>
 		<div class="score-value" id="scoreValue">0</div>
+		<div class="result-meta" id="speedMeta" style="margin-top: 14px;">Speed: —</div>
 	</div>
 	<div class="buttons">
 		<button class="primary" id="replayButton">Play Again</button>
@@ -201,12 +202,16 @@
 	const scoreCard = document.getElementById('scoreCard');
 	const resultHeadline = document.getElementById('resultHeadline');
 	const resultMeta = document.getElementById('resultMeta');
+	const speedMeta = document.getElementById('speedMeta');
 	const replayButton = document.getElementById('replayButton');
 	const menuButton = document.getElementById('menuButton');
 
 	const finalScore = Number(sessionStorage.getItem('catchMouseScore') ?? '0');
+	const storedSpeed = Number(sessionStorage.getItem('catchMouseSpeed') ?? '1');
+	const speedChoice = Number.isFinite(storedSpeed) && storedSpeed >= 1 && storedSpeed <= 5 ? storedSpeed : 1;
 
 	scoreValue.textContent = String(finalScore);
+	speedMeta.textContent = `Speed: ${speedChoice}`;
 
 	const isPositive = finalScore > 0;
 	const isNegative = finalScore < 0;
