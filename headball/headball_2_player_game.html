@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Head Football — 2 Players</title>
+  <style>
+    :root {
+      --grass-dark: #1a4d1a;
+      --grass-light: #2d7a2d;
+      --sky-light: #87ceeb;
+      --sky-dark: #4a90c9;
+      --text: #f4f7ff;
+      --muted: #a7d4b3;
+      --accent: #4ade80;
+      --accent-2: #ffd700;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: var(--text);
+      background: linear-gradient(180deg, var(--sky-light) 0%, var(--grass-light) 50%, var(--grass-dark) 100%);
+      overflow: hidden;
+    }
+
+    .back-button {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 2;
+      padding: 10px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.08));
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .hud {
+      display: flex;
+      gap: 40px;
+      margin-bottom: 16px;
+      padding: 12px 24px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.08));
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      align-items: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    .hud-item {
+      padding: 8px 16px;
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.08));
+      text-align: center;
+      min-width: 100px;
+    }
+
+    .hud-label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .hud-value {
+      display: block;
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    #game-area {
+      width: 800px;
+      height: 500px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, 0.04);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      position: relative;
+      background: linear-gradient(180deg, var(--sky-light) 0%, var(--sky-dark) 60%, var(--grass-light) 100%);
+    }
+
+    canvas {
+      display: block;
+      background: transparent;
+    }
+
+    .controls-hint {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .controls-hint.left {
+      left: 24px;
+    }
+
+    .controls-hint.right {
+      right: 24px;
+    }
+
+    .hint-label {
+      font-size: 0.68rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .controls-keypad { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+    .key-row { display: flex; gap: 8px; }
+    .key-row.top { justify-content: center; }
+    .key-row.middle { justify-content: space-between; }
+    .key-row.bottom { justify-content: center; }
+    .key-chip {
+      min-width: 62px;
+      height: 42px;
+      padding: 0 10px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(8, 12, 24, 0.82));
+      color: #f4f7ff;
+      font-size: 0.92rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22), inset 0 0 18px rgba(255, 255, 255, 0.05);
+    }
+
+    .start-overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, rgba(10, 60, 30, 0.3), rgba(10, 60, 30, 0.2));
+      z-index: 3;
+    }
+
+    .start-overlay.hidden {
+      display: none;
+    }
+
+    .overlay-card {
+      padding: 24px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.08));
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08);
+    }
+
+    .overlay-count {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 2.4rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), #34d399);
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <button class="back-button" onclick="location.href='headball_start_screen.html'">Back to Menu</button>
+  
+  <div class="hud">
+    <div class="hud-item">
+      <span class="hud-label">Player 2</span>
+      <span class="hud-value" id="scoreP2">0</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">Time</span>
+      <span class="hud-value" id="matchTimer">1:00</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">Player 1</span>
+      <span class="hud-value" id="scoreP1">0</span>
+    </div>
+  </div>
+
+  <div id="game-area">
+    <canvas id="canvas" width="800" height="500"></canvas>
+    <div class="controls-hint left">
+      <div class="hint-label">Player 2</div>
+      <div class="controls-keypad">
+        <div class="key-row top"><div class="key-chip">W</div></div>
+        <div class="key-row middle"><div class="key-chip">A</div><div class="key-chip">S</div><div class="key-chip">D</div></div>
+        <div class="key-row bottom"><div class="key-chip">Space</div></div>
+      </div>
+    </div>
+    <div class="controls-hint right">
+      <div class="hint-label">Player 1</div>
+      <div class="controls-keypad">
+        <div class="key-row top"><div class="key-chip">Up</div></div>
+        <div class="key-row middle"><div class="key-chip">Left</div><div class="key-chip">Down</div><div class="key-chip">Right</div></div>
+        <div class="key-row bottom"><div class="key-chip">P</div></div>
+      </div>
+    </div>
+    <div class="start-overlay" id="startOverlay">
+      <div class="overlay-card">
+        <div style="margin-bottom:12px;font-weight:700;color:var(--accent);font-size:1.2rem;" id="overlayPhrase">Get Ready</div>
+        <div class="overlay-count" id="overlayCount">3</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const scoreP1Display = document.getElementById('scoreP1');
+    const scoreP2Display = document.getElementById('scoreP2');
+    const matchTimerDisplay = document.getElementById('matchTimer');
+    const startOverlay = document.getElementById('startOverlay');
+    const overlayCount = document.getElementById('overlayCount');
+    const overlayPhrase = document.getElementById('overlayPhrase');
+
+    const catchphrases = [
+      'Head it like you mean it!',
+      'Use your noggin!',
+      'Kick to glory!',
+      'Head over heels.',
+      'Score with style.',
+      'Let\'s go!',
+      'GOAL!!!!!'
+    ];
+
+    const GROUND_Y = 470;
+    const PLAYER_WIDTH = 36;
+    const PLAYER_HEIGHT = 72;
+    const BALL_RADIUS = 8;
+    const MATCH_DURATION_MS = 60 * 1000;
+    const GOAL_POST_HEIGHT = PLAYER_HEIGHT + 30;
+    const GOAL_TOP_Y = GROUND_Y - GOAL_POST_HEIGHT;
+    const GOAL_POST_WIDTH = 36;
+
+    let gameActive = false;
+    let gameFrame = 0;
+    let scoreP1 = 0;
+    let scoreP2 = 0;
+    let matchStartTime = 0;
+
+    // Player 1 (right side, arrow keys)
+    let p1 = {
+      x: 650,
+      y: GROUND_Y - PLAYER_HEIGHT,
+      width: PLAYER_WIDTH,
+      height: PLAYER_HEIGHT,
+      vx: 0,
+      vy: 0,
+      isJumping: false,
+      attacking: false,
+      kickHeld: false,
+      footKickAngle: 0,
+      wasKickHeld: false,
+      kickReboundTimer: 0,
+      maxSpeed: 4,
+      jumpPower: 12,
+      footDirection: 'left'
+    };
+
+    // Player 2 (left side, WASD)
+    let p2 = {
+      x: 150,
+      y: GROUND_Y - PLAYER_HEIGHT,
+      width: PLAYER_WIDTH,
+      height: PLAYER_HEIGHT,
+      vx: 0,
+      vy: 0,
+      isJumping: false,
+      attacking: false,
+      kickHeld: false,
+      footKickAngle: 0,
+      wasKickHeld: false,
+      kickReboundTimer: 0,
+      maxSpeed: 4,
+      jumpPower: 12,
+      footDirection: 'right'
+    };
+
+    // Ball
+    let ball = {
+      x: 400,
+      y: 200,
+      vx: 0,
+      vy: 0,
+      radius: BALL_RADIUS,
+      friction: 0.98,
+      gravity: 0.4
+    };
+
+    const keys = {};
+
+    window.addEventListener('keydown', (e) => {
+      keys[e.key] = true;
+      if (e.key === ' ' || e.key === 'p' || e.key === 'P') {
+        e.preventDefault();
+        if (gameActive) {
+          if (e.key === ' ') {
+            p2.kickHeld = true;
+          }
+          if (e.key === 'p' || e.key === 'P') {
+            p1.kickHeld = true;
+          }
+        }
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      keys[e.key] = false;
+      if (e.key === ' ') {
+        p2.kickHeld = false;
+      }
+      if (e.key === 'p' || e.key === 'P') {
+        p1.kickHeld = false;
+      }
+    });
+
+    function updatePlayer(player, leftKeys, rightKeys, jumpKey) {
+      if (gameActive) {
+        // Horizontal movement
+        if (keys[leftKeys]) {
+          player.vx = -player.maxSpeed;
+        } else if (keys[rightKeys]) {
+          player.vx = player.maxSpeed;
+        } else {
+          player.vx *= 0.85;
+        }
+
+        // Jump
+        if (keys[jumpKey] && !player.isJumping && player.y + player.height >= GROUND_Y - 1) {
+          player.vy = -player.jumpPower;
+          player.isJumping = true;
+        }
+      }
+
+      // Gravity
+      player.vy += 0.5;
+
+      // Update position
+      player.x += player.vx;
+      player.y += player.vy;
+
+      // Ground collision
+      if (player.y + player.height >= GROUND_Y) {
+        player.y = GROUND_Y - player.height;
+        player.vy = 0;
+        player.isJumping = false;
+      }
+
+      // Boundary collision
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+
+      // Kick pose: down while held, then a short upward rebound (~half angle) after release.
+      const dirSign = player.footDirection === 'left' ? -1 : 1;
+      const downKickAngle = dirSign * (30 * Math.PI / 180);
+      const reboundAngle = -dirSign * (24 * Math.PI / 180);
+
+      if (!player.kickHeld && player.wasKickHeld) {
+        player.kickReboundTimer = 8;
+      }
+      player.wasKickHeld = player.kickHeld;
+
+      let kickTarget = 0;
+      if (player.kickHeld) {
+        kickTarget = downKickAngle;
+      } else if (player.kickReboundTimer > 0) {
+        kickTarget = reboundAngle;
+        player.kickReboundTimer--;
+      }
+
+      player.footKickAngle += (kickTarget - player.footKickAngle) * 0.22;
+      player.attacking = player.kickHeld || player.kickReboundTimer > 0;
+    }
+
+    function updateBall() {
+      // Gravity
+      ball.vy += ball.gravity;
+
+      // Apply friction
+      ball.vx *= ball.friction;
+      ball.vy *= ball.friction;
+
+      // Update position
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+
+      // Ground collision
+      if (ball.y + ball.radius >= GROUND_Y) {
+        ball.y = GROUND_Y - ball.radius;
+        ball.vy *= -0.75;
+      }
+
+      // Ceiling collision
+      if (ball.y - ball.radius <= 0) {
+        ball.y = ball.radius;
+        ball.vy *= -0.75;
+      }
+
+      // Top of goal posts reflect the ball.
+      const hitsLeftPostTop = ball.x + ball.radius >= 0 && ball.x - ball.radius <= GOAL_POST_WIDTH;
+      const hitsRightPostTop = ball.x + ball.radius >= canvas.width - GOAL_POST_WIDTH && ball.x - ball.radius <= canvas.width;
+      if (ball.vy > 0 && ball.y - ball.radius <= GOAL_TOP_Y && ball.y + ball.radius >= GOAL_TOP_Y && (hitsLeftPostTop || hitsRightPostTop)) {
+        ball.y = GOAL_TOP_Y - ball.radius;
+        ball.vy = -Math.abs(ball.vy) * 0.9;
+      }
+
+      // Side walls and goals: only score if the ball enters the goal opening.
+      const inGoalOpening = ball.y >= GOAL_TOP_Y && ball.y <= GROUND_Y;
+
+      if (ball.x - ball.radius <= 0) {
+        if (inGoalOpening) {
+          scoreP1++;
+          scoreP1Display.textContent = scoreP1;
+          resetBall();
+          return;
+        }
+        ball.x = ball.radius;
+        ball.vx = Math.abs(ball.vx) * 0.95;
+      }
+
+      if (ball.x + ball.radius >= canvas.width) {
+        if (inGoalOpening) {
+          scoreP2++;
+          scoreP2Display.textContent = scoreP2;
+          resetBall();
+          return;
+        }
+        ball.x = canvas.width - ball.radius;
+        ball.vx = -Math.abs(ball.vx) * 0.95;
+      }
+    }
+
+    function resolvePlayerCollision() {
+      const p1Parts = getPlayerParts(p1);
+      const p2Parts = getPlayerParts(p2);
+      const dx = p2Parts.head.x - p1Parts.head.x;
+      const dy = p2Parts.head.y - p1Parts.head.y;
+      const distance = Math.hypot(dx, dy);
+      const minDistance = p1Parts.head.radius + p2Parts.head.radius - 4;
+
+      if (distance >= minDistance) {
+        return;
+      }
+
+      const nx = distance === 0 ? 1 : dx / distance;
+      const ny = distance === 0 ? 0 : dy / distance;
+      const overlap = minDistance - distance;
+
+      p1.x -= nx * overlap * 0.5;
+      p1.y -= ny * overlap * 0.5;
+      p2.x += nx * overlap * 0.5;
+      p2.y += ny * overlap * 0.5;
+
+      p1.x = Math.max(0, Math.min(canvas.width - p1.width, p1.x));
+      p2.x = Math.max(0, Math.min(canvas.width - p2.width, p2.x));
+      p1.y = Math.min(p1.y, GROUND_Y - p1.height);
+      p2.y = Math.min(p2.y, GROUND_Y - p2.height);
+
+      const relVx = p2.vx - p1.vx;
+      const relVy = p2.vy - p1.vy;
+      const alongNormal = relVx * nx + relVy * ny;
+      if (alongNormal < 0) {
+        const restitution = 0.35;
+        const impulse = (-(1 + restitution) * alongNormal) * 0.5;
+        p1.vx -= impulse * nx;
+        p1.vy -= impulse * ny;
+        p2.vx += impulse * nx;
+        p2.vy += impulse * ny;
+      }
+    }
+
+    function resetBall() {
+      ball.x = canvas.width / 2;
+      ball.y = 150;
+      ball.vx = (Math.random() - 0.5) * 3;
+      ball.vy = 0;
+    }
+
+    function formatMatchTime(ms) {
+      const totalSeconds = Math.ceil(ms / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function endGame(reason = 'time_up') {
+      if (!gameActive) {
+        return;
+      }
+      gameActive = false;
+
+      const winner = scoreP1 > scoreP2 ? 'Player 1' : (scoreP2 > scoreP1 ? 'Player 2' : 'Draw');
+      sessionStorage.setItem('headballP1Score', String(scoreP1));
+      sessionStorage.setItem('headballP2Score', String(scoreP2));
+      sessionStorage.setItem('headballWinner', winner);
+      sessionStorage.setItem('headballWinReason', reason);
+
+      setTimeout(() => {
+        location.replace('headball_2_player_score_screen.html');
+      }, 150);
+    }
+
+    function updateMatchTimer() {
+      if (!gameActive || matchStartTime === 0) {
+        return false;
+      }
+
+      const elapsed = Date.now() - matchStartTime;
+      const remaining = Math.max(0, MATCH_DURATION_MS - elapsed);
+      matchTimerDisplay.textContent = formatMatchTime(remaining);
+
+      if (remaining <= 0) {
+        endGame('Time is up');
+        return true;
+      }
+      return false;
+    }
+
+    function getPlayerParts(player) {
+      const headRadius = 28;
+      const headX = player.x + player.width / 2;
+      const headY = player.y + player.height - headRadius;
+      const footRectWidth = 28;
+      const toeLength = 16;
+      const footHeight = 10;
+      const footWidth = footRectWidth + toeLength;
+      const footX = player.footDirection === 'left' ? headX - footWidth - 8 : headX + 8;
+      const footY = player.y + player.height - footHeight;
+      const footPivotX = player.footDirection === 'left' ? footX + footWidth : footX;
+      const footPivotY = footY + footHeight / 2;
+      const kickAngle = player.footKickAngle || 0;
+
+      return {
+        head: { x: headX, y: headY, radius: headRadius },
+        foot: {
+          x: footX,
+          y: footY,
+          width: footWidth,
+          height: footHeight,
+          rectWidth: footRectWidth,
+          toeLength: toeLength,
+          direction: player.footDirection,
+          pivotX: footPivotX,
+          pivotY: footPivotY,
+          angle: kickAngle
+        }
+      };
+    }
+
+    function getFootWorldPoints(foot) {
+      const localPoints = [
+        { x: 0, y: -foot.height / 2 },
+        { x: foot.rectWidth, y: -foot.height / 2 },
+        { x: foot.rectWidth + foot.toeLength, y: foot.height / 2 },
+        { x: 0, y: foot.height / 2 }
+      ];
+
+      const cos = Math.cos(foot.angle || 0);
+      const sin = Math.sin(foot.angle || 0);
+      const mirror = foot.direction === 'left' ? -1 : 1;
+
+      return localPoints.map(point => {
+        const mirroredX = point.x * mirror;
+        const rotatedX = mirroredX * cos - point.y * sin;
+        const rotatedY = mirroredX * sin + point.y * cos;
+        return {
+          x: rotatedX + foot.pivotX,
+          y: rotatedY + foot.pivotY
+        };
+      });
+    }
+
+    function closestPointOnSegment(px, py, ax, ay, bx, by) {
+      const abx = bx - ax;
+      const aby = by - ay;
+      const apx = px - ax;
+      const apy = py - ay;
+      const abLengthSquared = abx * abx + aby * aby;
+      const t = abLengthSquared === 0 ? 0 : Math.max(0, Math.min(1, (apx * abx + apy * aby) / abLengthSquared));
+      return { x: ax + abx * t, y: ay + aby * t };
+    }
+
+    function pointInPolygon(px, py, points) {
+      let inside = false;
+      for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+        const xi = points[i].x;
+        const yi = points[i].y;
+        const xj = points[j].x;
+        const yj = points[j].y;
+        const intersects = ((yi > py) !== (yj > py)) && (px < ((xj - xi) * (py - yi)) / ((yj - yi) || 1e-9) + xi);
+        if (intersects) inside = !inside;
+      }
+      return inside;
+    }
+
+    function polygonCentroid(points) {
+      const sum = points.reduce((acc, point) => ({ x: acc.x + point.x, y: acc.y + point.y }), { x: 0, y: 0 });
+      return { x: sum.x / points.length, y: sum.y / points.length };
+    }
+
+    function applyDynamicBounce(normalX, normalY, player, collisionType = 'body') {
+      const relativeVx = ball.vx - player.vx;
+      const relativeVy = ball.vy - player.vy;
+      const speedAlongNormal = relativeVx * normalX + relativeVy * normalY;
+
+      if (speedAlongNormal >= 0) {
+        return;
+      }
+
+      const restitution = collisionType === 'foot' ? (player.attacking ? 1.5 : 1.35) : 1.0;
+      const impulse = -(1 + restitution) * speedAlongNormal;
+
+      ball.vx = relativeVx + impulse * normalX + player.vx;
+      ball.vy = relativeVy + impulse * normalY + player.vy;
+
+      // Active kicks add extra force compared to passive body pushes.
+      if (collisionType === 'foot' && player.attacking) {
+        const kickDir = player.footDirection === 'left' ? -1 : 1;
+        ball.vx += kickDir * 13.2;
+        ball.vy -= 5.8;
+      }
+
+      // Keep speed stable and avoid runaway acceleration from repeated contacts.
+      const speed = Math.hypot(ball.vx, ball.vy);
+      const maxSpeed = 34;
+      if (speed > maxSpeed) {
+        ball.vx = (ball.vx / speed) * maxSpeed;
+        ball.vy = (ball.vy / speed) * maxSpeed;
+      }
+    }
+
+    function checkCollision(player) {
+      const parts = getPlayerParts(player);
+
+      // Head collision
+      {
+        const dx = ball.x - parts.head.x;
+        const dy = ball.y - parts.head.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const minDistance = ball.radius + parts.head.radius;
+
+        if (distance < minDistance) {
+          const normalX = distance === 0 ? 1 : dx / distance;
+          const normalY = distance === 0 ? 0 : dy / distance;
+          const overlap = minDistance - distance;
+
+          ball.x += normalX * overlap;
+          ball.y += normalY * overlap;
+          applyDynamicBounce(normalX, normalY, player, 'head');
+          return true;
+        }
+      }
+
+      // Foot collision
+      {
+        const footPolygon = getFootWorldPoints(parts.foot);
+        let closestPoint = null;
+        let closestDistance = Infinity;
+
+        for (let i = 0; i < footPolygon.length; i++) {
+          const a = footPolygon[i];
+          const b = footPolygon[(i + 1) % footPolygon.length];
+          const candidate = closestPointOnSegment(ball.x, ball.y, a.x, a.y, b.x, b.y);
+          const dx = ball.x - candidate.x;
+          const dy = ball.y - candidate.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestPoint = candidate;
+          }
+        }
+
+        const inside = pointInPolygon(ball.x, ball.y, footPolygon);
+        if (inside || closestDistance < ball.radius) {
+          let normalX = 0;
+          let normalY = -1;
+          if (closestPoint) {
+            const centroid = polygonCentroid(footPolygon);
+            const rawX = ball.x - closestPoint.x;
+            const rawY = ball.y - closestPoint.y;
+            const rawDistance = Math.sqrt(rawX * rawX + rawY * rawY);
+            if (rawDistance > 0) {
+              normalX = rawX / rawDistance;
+              normalY = rawY / rawDistance;
+            } else {
+              const centerX = ball.x - centroid.x;
+              const centerY = ball.y - centroid.y;
+              const centerDistance = Math.sqrt(centerX * centerX + centerY * centerY) || 1;
+              normalX = centerX / centerDistance;
+              normalY = centerY / centerDistance;
+            }
+          }
+
+          const overlap = inside ? ball.radius + closestDistance : ball.radius - closestDistance;
+          ball.x += normalX * overlap;
+          ball.y += normalY * overlap;
+          applyDynamicBounce(normalX, normalY, player, 'foot');
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function drawPlayer(player, bottomHalfColor) {
+      const parts = getPlayerParts(player);
+      const headRadius = parts.head.radius;
+      const headX = parts.head.x;
+      const headY = parts.head.y;
+      const footX = parts.foot.x;
+      const footY = parts.foot.y;
+      const footWidth = parts.foot.width;
+      const footHeight = parts.foot.height;
+      const footRectWidth = parts.foot.rectWidth;
+      const toeLength = parts.foot.toeLength;
+      const footDirection = parts.foot.direction;
+      const kickAngle = player.footKickAngle || 0;
+      const footPivotX = parts.foot.pivotX;
+      const footPivotY = parts.foot.pivotY;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(headX, headY, headRadius, 0, Math.PI * 2);
+      ctx.clip();
+
+      ctx.fillStyle = '#ff8ec7';
+      ctx.fillRect(headX - headRadius, headY - headRadius, headRadius * 2, headRadius);
+      ctx.fillStyle = bottomHalfColor;
+      ctx.fillRect(headX - headRadius, headY, headRadius * 2, headRadius);
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.arc(headX, headY, headRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.save();
+      ctx.translate(footPivotX, footPivotY);
+      ctx.rotate(kickAngle);
+      if (footDirection === 'left') {
+        ctx.scale(-1, 1);
+      }
+
+      ctx.fillStyle = '#8a8a8a';
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
+      ctx.lineWidth = 1;
+
+      ctx.beginPath();
+      ctx.rect(0, -footHeight / 2, footRectWidth, footHeight);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(footRectWidth, -footHeight / 2);
+      ctx.lineTo(footRectWidth, footHeight / 2);
+      ctx.lineTo(footRectWidth + toeLength, footHeight / 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
+      ctx.lineWidth = 1;
+      ctx.restore();
+    }
+
+    function draw() {
+      // Sky gradient
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+      skyGrad.addColorStop(0, '#87ceeb');
+      skyGrad.addColorStop(1, '#4a90c9');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, canvas.width, GROUND_Y);
+
+      // Grass
+      ctx.fillStyle = '#2d7a2d';
+      ctx.fillRect(0, GROUND_Y, canvas.width, canvas.height - GROUND_Y);
+
+      // Center line
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([10, 10]);
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, GROUND_Y);
+      ctx.lineTo(canvas.width / 2, canvas.height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Players
+      drawPlayer(p1, p1.attacking ? '#4db8ff' : '#2aa0ff');
+      drawPlayer(p2, p2.attacking ? '#9a5b2d' : '#7a5230');
+
+      // Ball
+      const ballGrad = ctx.createRadialGradient(ball.x - 2, ball.y - 2, 0, ball.x, ball.y, ball.radius);
+      ballGrad.addColorStop(0, '#ffd700');
+      ballGrad.addColorStop(1, '#ffaa00');
+      ctx.fillStyle = ballGrad;
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#fff8dc';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Goal posts (taller than player)
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.fillRect(0, GOAL_TOP_Y, GOAL_POST_WIDTH, GOAL_POST_HEIGHT);
+      ctx.fillRect(canvas.width - GOAL_POST_WIDTH, GOAL_TOP_Y, GOAL_POST_WIDTH, GOAL_POST_HEIGHT);
+
+      // Horizontal collision marker on top of each goal post.
+      ctx.fillStyle = '#2b2b2b';
+      ctx.fillRect(0, GOAL_TOP_Y - 3, GOAL_POST_WIDTH, 3);
+      ctx.fillRect(canvas.width - GOAL_POST_WIDTH, GOAL_TOP_Y - 3, GOAL_POST_WIDTH, 3);
+    }
+
+    function gameLoop() {
+      if (!gameActive) {
+        return;
+      }
+
+      updatePlayer(p1, 'ArrowLeft', 'ArrowRight', 'ArrowUp');
+      updatePlayer(p2, 'a', 'd', 'w');
+      resolvePlayerCollision();
+      updateBall();
+
+      if (updateMatchTimer()) {
+        return;
+      }
+
+      // Ball-player collisions
+      checkCollision(p1);
+      checkCollision(p2);
+
+      draw();
+      gameFrame++;
+      requestAnimationFrame(gameLoop);
+    }
+
+    function startCountdown() {
+      let count = 3;
+      overlayPhrase.textContent = catchphrases[Math.floor(Math.random() * catchphrases.length)];
+      overlayCount.textContent = String(count);
+
+      const countdown = setInterval(() => {
+        count--;
+        if (count > 0) {
+          overlayCount.textContent = String(count);
+          return;
+        }
+        overlayCount.textContent = 'GO';
+        clearInterval(countdown);
+        setTimeout(() => {
+          startOverlay.classList.add('hidden');
+          matchStartTime = Date.now();
+          matchTimerDisplay.textContent = formatMatchTime(MATCH_DURATION_MS);
+          gameActive = true;
+          gameLoop();
+        }, 500);
+      }, 1000);
+    }
+
+    // Init
+    draw();
+    scoreP1Display.textContent = '0';
+    scoreP2Display.textContent = '0';
+    matchTimerDisplay.textContent = formatMatchTime(MATCH_DURATION_MS);
+    startCountdown();
+
+    window.addEventListener('keydown', (e) => {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
+    });
+  </script>
+</body>
+</html>

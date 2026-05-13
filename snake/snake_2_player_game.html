@@ -96,8 +96,8 @@
     </div>
   </div>
 
-  <div class="mayhem-hint hidden" id="mayhemHint">
-    Mayhem mode: you can eat your enemy last body part. If he is only 3 body parts he will lose. BUT be careful, cause you could lose also.
+  <div class="mayhem-hint hidden" id="modeHint">
+    Classic mode: first to 50 points wins. Keep eating apples and avoid crashing into the other snake.
   </div>
 
   <script>
@@ -108,7 +108,7 @@
     const startOverlay = document.getElementById('startOverlay');
     const overlayCount = document.getElementById('overlayCount');
     const overlayPhrase = document.getElementById('overlayPhrase');
-    const mayhemHint = document.getElementById('mayhemHint');
+    const modeHint = document.getElementById('modeHint');
 
     const catchphrases = [
       'Grow long and thrive.',
@@ -129,10 +129,11 @@
     const isMayhem = duoVariant === 'mayhem' || duoVariant === 'bombs';
     const isBombsMode = isMayhem;
     if(isMayhem){
-      mayhemHint.textContent = 'Mayhem mode: tail battles + bombs + speed powerups. If enemy has only 3 body parts and you hit the tail, they lose. Bombs are dangerous: with score under 2 or size 3, bomb hit is instant defeat. Grab golden powerups for a 2x speed boost!';
-      mayhemHint.classList.remove('hidden');
+      modeHint.textContent = 'Mayhem mode: tail battles, bombs, and speed powerups. Score 50 points to win, but watch out: if you hit an enemy tail and they are still big enough, they lose body parts instead of the game ending. Bombs are dangerous: with score under 2 or size 3, bomb hit is instant defeat.';
+      modeHint.classList.remove('hidden');
     } else {
-      mayhemHint.classList.add('hidden');
+      modeHint.textContent = 'Classic mode: first to 50 points wins. Keep eating apples and avoid crashing into the other snake.';
+      modeHint.classList.remove('hidden');
     }
 
     // duo-only game
@@ -444,6 +445,7 @@
                 if(score2 > 0) score2--;
                 player2ScoreDisplay.textContent = String(score2);
                 player1ScoreDisplay.textContent = String(score);
+                checkWin();
               } else if(p1HitP2Idx === p2TailIdx && snake2.length === 3){
                 // Special mayhem rule: if defender is at minimum size, tail hit ends game in attacker's favor.
                 p2Lose = true;
@@ -477,6 +479,7 @@
                 if(score > 0) score--;
                 player2ScoreDisplay.textContent = String(score2);
                 player1ScoreDisplay.textContent = String(score);
+                checkWin();
               } else if(p2HitP1Idx === p1TailIdx && snake.length === 3){
                 // Special mayhem rule: if defender is at minimum size, tail hit ends game in attacker's favor.
                 p1Lose = true;
@@ -529,8 +532,21 @@
       let usedBomb1 = false, usedBomb2 = false;
       for(let i=apples.length-1;i>=0;i--){
         const a = apples[i];
-        if(!ate1 && p1ShouldMove && nx===a.x && ny===a.y){ score++; apples.splice(i,1); player1ScoreDisplay.textContent = String(score); ate1 = true; continue; }
-        if(!ate2 && p2ShouldMove && nx2===a.x && ny2===a.y){ score2++; apples.splice(i,1); player2ScoreDisplay.textContent = String(score2); ate2 = true; }
+        if(!ate1 && p1ShouldMove && nx===a.x && ny===a.y){
+          score++;
+          apples.splice(i,1);
+          player1ScoreDisplay.textContent = String(score);
+          ate1 = true;
+          checkWin();
+          continue;
+        }
+        if(!ate2 && p2ShouldMove && nx2===a.x && ny2===a.y){
+          score2++;
+          apples.splice(i,1);
+          player2ScoreDisplay.textContent = String(score2);
+          ate2 = true;
+          checkWin();
+        }
       }
 
       if(isBombsMode){
@@ -590,6 +606,20 @@
       sessionStorage.setItem('snakeWinner', String(winner || 'Player 1'));
       sessionStorage.setItem('snakeWinReason', String(reason || ''));
       setTimeout(()=> location.href = 'snake_2_player_score.html', 300);
+    }
+
+    // Check for win condition: first to reach 50 points wins
+    function checkWin(){
+      const WIN_TARGET = 50;
+      if(score >= WIN_TARGET){
+        endGame('Player 1', 'Reached ' + WIN_TARGET + ' points');
+        return true;
+      }
+      if(score2 >= WIN_TARGET){
+        endGame('Player 2', 'Reached ' + WIN_TARGET + ' points');
+        return true;
+      }
+      return false;
     }
 
     // controls

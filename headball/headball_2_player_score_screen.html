@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Headball - 2 Player Score</title>
+<style>
+  :root{
+    --grass-dark:#1a4d1a;
+    --grass-light:#2d7a2d;
+    --sky-light:#87ceeb;
+    --text:#f4f7ff;
+    --muted:#a7d4b3;
+    --accent:#4ade80;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:Arial,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(circle at top, rgba(135,206,235,0.20), transparent 35%),
+      radial-gradient(circle at bottom left, rgba(74,222,128,0.14), transparent 30%),
+      linear-gradient(135deg, #0d2a0d, #1a4a1a 55%, #0d2a0d);
+    display:grid;
+    place-items:center;
+  }
+  .panel{
+    width:min(94vw,720px);
+    padding:36px;
+    border-radius:18px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.10));
+    border:1px solid rgba(255,255,255,0.20);
+    box-shadow:0 16px 48px rgba(0,0,0,0.22);
+    text-align:center;
+  }
+  h1{margin:0;font-size:0.9rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted)}
+  .result-headline{font-size:2rem;font-weight:800;margin-top:14px}
+  .cards{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+  .score-card{
+    padding:24px;
+    border-radius:16px;
+    border:2px solid rgba(74,222,128,0.45);
+    background:rgba(255,255,255,0.14);
+    width:min(100%,300px);
+  }
+  .score-label{font-size:0.85rem;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px}
+  .score-value{font-size:4rem;font-weight:800;color:var(--accent)}
+  .detail{margin-top:14px;color:var(--muted);line-height:1.5}
+  .buttons{display:grid;gap:12px;width:min(100%,320px);margin:24px auto 0}
+  button{appearance:none;border:0;border-radius:12px;padding:14px 20px;font-size:1rem;font-weight:700;cursor:pointer}
+  .primary{background:linear-gradient(135deg,var(--accent),#34d399);color:white}
+  .secondary{background:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.2);color:#0f2a1a}
+</style>
+</head>
+<body>
+  <main class="panel">
+    <h1>Match Over</h1>
+    <div class="result-headline" id="resultHeadline">Player 1 Wins!</div>
+    <div class="cards">
+      <div class="score-card">
+        <div class="score-label">Player 2</div>
+        <div class="score-value" id="scoreP2">0</div>
+      </div>
+      <div class="score-card">
+        <div class="score-label">Player 1</div>
+        <div class="score-value" id="scoreP1">0</div>
+      </div>
+    </div>
+    <div class="detail" id="winDetail"></div>
+    <div class="buttons">
+      <button class="primary" id="replayButton">Play Again</button>
+      <button class="secondary" id="menuButton">Back to Headball Menu</button>
+    </div>
+  </main>
+
+  <script>
+    const scoreP1Display = document.getElementById('scoreP1');
+    const scoreP2Display = document.getElementById('scoreP2');
+    const resultHeadline = document.getElementById('resultHeadline');
+    const winDetail = document.getElementById('winDetail');
+    const replayButton = document.getElementById('replayButton');
+    const menuButton = document.getElementById('menuButton');
+
+    const player1Score = Number(sessionStorage.getItem('headballP1Score') ?? '0');
+    const player2Score = Number(sessionStorage.getItem('headballP2Score') ?? '0');
+    const winner = sessionStorage.getItem('headballWinner') ?? 'Draw';
+    const reason = sessionStorage.getItem('headballWinReason') ?? 'Time is up';
+
+    scoreP1Display.textContent = String(player1Score);
+    scoreP2Display.textContent = String(player2Score);
+
+    if (winner === 'Draw') {
+      resultHeadline.textContent = 'Draw';
+      resultHeadline.style.color = '#facc15';
+      winDetail.textContent = `${reason}. Both players finished with ${player1Score}.`;
+    } else {
+      resultHeadline.textContent = `${winner} Wins!`;
+      resultHeadline.style.color = '#4ade80';
+      winDetail.textContent = `${reason}. Final score ${player2Score} - ${player1Score}.`;
+    }
+
+    function clearHeadballSession() {
+      sessionStorage.removeItem('headballP1Score');
+      sessionStorage.removeItem('headballP2Score');
+      sessionStorage.removeItem('headballWinner');
+      sessionStorage.removeItem('headballWinReason');
+    }
+
+    replayButton.addEventListener('click', () => {
+      clearHeadballSession();
+      location.replace('headball_2_player_game.html');
+    });
+
+    menuButton.addEventListener('click', () => {
+      clearHeadballSession();
+      location.replace('headball_start_screen.html');
+    });
+  </script>
+</body>
+</html>

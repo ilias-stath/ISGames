@@ -83,7 +83,7 @@
 			background: rgba(0, 26, 77, 0.6);
 			padding: 28px;
 			border-radius: 16px;
-			min-width: 260px;
+			width: 250px;
 			border: 2px solid rgba(0, 217, 255, 0.3);
 			box-shadow: 
 				0 0 20px rgba(0, 102, 255, 0.3),
@@ -123,12 +123,16 @@
 			color: var(--white);
 			letter-spacing: 0.06em;
 			text-transform: uppercase;
+			word-break: break-word;
+			overflow-wrap: break-word;
 		}
 
 		.card p {
 			margin: 0 0 16px;
 			color: #b3d9ff;
 			font-size: 0.95rem;
+			word-break: break-word;
+			overflow-wrap: break-word;
 		}
 
 		.btn {
@@ -171,7 +175,7 @@
 		<div class="grid">
 			<div class="card">
 				<h2>Pong</h2>
-				<p>Classic Pong, nothing more to say.</p>
+				<p>Classic Pong, no need for more informations.</p>
 				<a class="btn" href="pong/pong_starting_screen.html">Play Pong</a>
 			</div>
 
@@ -185,6 +189,12 @@
 				<h2>Snake</h2>
 				<p>Classic Snake — eat apples, grow longer, avoid hitting yourself.</p>
 				<a class="btn" href="snake/snake_start.html">Play Snake</a>
+			</div>
+
+			<div class="card">
+				<h2>Head Football</h2>
+				<p>Hit the ball with your head and your foot.</p>
+				<a class="btn" href="headball/headball_start_screen.html">Play Head Football</a>
 			</div>
 		</div>
 
