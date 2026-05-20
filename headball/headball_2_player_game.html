@@ -257,17 +257,23 @@
     const GOAL_POST_HEIGHT = PLAYER_HEIGHT + 30;
     const GOAL_TOP_Y = GROUND_Y - GOAL_POST_HEIGHT;
     const GOAL_POST_WIDTH = 36;
+    const P1_START_X = 650;
+    const P2_START_X = 150;
+    const PLAYER_START_Y = GROUND_Y - PLAYER_HEIGHT;
 
     let gameActive = false;
     let gameFrame = 0;
     let scoreP1 = 0;
     let scoreP2 = 0;
     let matchStartTime = 0;
+    let pauseStartedAt = 0;
+    let countdownInterval = null;
+    let countdownGoTimeout = null;
 
     // Player 1 (right side, arrow keys)
     let p1 = {
-      x: 650,
-      y: GROUND_Y - PLAYER_HEIGHT,
+      x: P1_START_X,
+      y: PLAYER_START_Y,
       width: PLAYER_WIDTH,
       height: PLAYER_HEIGHT,
       vx: 0,
@@ -285,8 +291,8 @@
 
     // Player 2 (left side, WASD)
     let p2 = {
-      x: 150,
-      y: GROUND_Y - PLAYER_HEIGHT,
+      x: P2_START_X,
+      y: PLAYER_START_Y,
       width: PLAYER_WIDTH,
       height: PLAYER_HEIGHT,
       vx: 0,
@@ -437,7 +443,7 @@
         if (inGoalOpening) {
           scoreP1++;
           scoreP1Display.textContent = scoreP1;
-          resetBall();
+          startNextKickoff();
           return;
         }
         ball.x = ball.radius;
@@ -448,7 +454,7 @@
         if (inGoalOpening) {
           scoreP2++;
           scoreP2Display.textContent = scoreP2;
-          resetBall();
+          startNextKickoff();
           return;
         }
         ball.x = canvas.width - ball.radius;
@@ -500,6 +506,36 @@
       ball.y = 150;
       ball.vx = (Math.random() - 0.5) * 3;
       ball.vy = 0;
+    }
+
+    function resetPlayerState(player, startX) {
+      player.x = startX;
+      player.y = PLAYER_START_Y;
+      player.vx = 0;
+      player.vy = 0;
+      player.isJumping = false;
+      player.attacking = false;
+      player.kickHeld = false;
+      player.wasKickHeld = false;
+      player.kickReboundTimer = 0;
+      player.footKickAngle = 0;
+    }
+
+    function resetPlayersToStart() {
+      resetPlayerState(p1, P1_START_X);
+      resetPlayerState(p2, P2_START_X);
+      Object.keys(keys).forEach((key) => {
+        keys[key] = false;
+      });
+    }
+
+    function startNextKickoff() {
+      gameActive = false;
+      pauseStartedAt = Date.now();
+      resetPlayersToStart();
+      resetBall();
+      draw();
+      startCountdown(false);
     }
 
     function formatMatchTime(ms) {
@@ -848,6 +884,10 @@
       resolvePlayerCollision();
       updateBall();
 
+      if (!gameActive) {
+        return;
+      }
+
       if (updateMatchTimer()) {
         return;
       }
@@ -861,23 +901,42 @@
       requestAnimationFrame(gameLoop);
     }
 
-    function startCountdown() {
+    function clearCountdownTimers() {
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
+      if (countdownGoTimeout) {
+        clearTimeout(countdownGoTimeout);
+        countdownGoTimeout = null;
+      }
+    }
+
+    function startCountdown(isInitialKickoff = true) {
+      clearCountdownTimers();
+      startOverlay.classList.remove('hidden');
       let count = 3;
       overlayPhrase.textContent = catchphrases[Math.floor(Math.random() * catchphrases.length)];
       overlayCount.textContent = String(count);
 
-      const countdown = setInterval(() => {
+      countdownInterval = setInterval(() => {
         count--;
         if (count > 0) {
           overlayCount.textContent = String(count);
           return;
         }
         overlayCount.textContent = 'GO';
-        clearInterval(countdown);
-        setTimeout(() => {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+        countdownGoTimeout = setTimeout(() => {
           startOverlay.classList.add('hidden');
-          matchStartTime = Date.now();
-          matchTimerDisplay.textContent = formatMatchTime(MATCH_DURATION_MS);
+          if (isInitialKickoff) {
+            matchStartTime = Date.now();
+          } else if (pauseStartedAt !== 0) {
+            matchStartTime += Date.now() - pauseStartedAt;
+            pauseStartedAt = 0;
+          }
+          countdownGoTimeout = null;
           gameActive = true;
           gameLoop();
         }, 500);
