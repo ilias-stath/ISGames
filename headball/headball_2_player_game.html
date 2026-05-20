@@ -252,7 +252,7 @@
     const GROUND_Y = 470;
     const PLAYER_WIDTH = 36;
     const PLAYER_HEIGHT = 72;
-    const BALL_RADIUS = 8;
+    const BALL_RADIUS = 10;
     const MATCH_DURATION_MS = 60 * 1000;
     const GOAL_POST_HEIGHT = PLAYER_HEIGHT + 30;
     const GOAL_TOP_Y = GROUND_Y - GOAL_POST_HEIGHT;
@@ -666,32 +666,33 @@
       const relativeVx = ball.vx - player.vx;
       const relativeVy = ball.vy - player.vy;
       const speedAlongNormal = relativeVx * normalX + relativeVy * normalY;
+      const carryFactor = collisionType === 'foot' ? (player.attacking ? 0.28 : 0.16) : 0.2;
 
       if (collisionType === 'foot' && !player.attacking) {
         if (speedAlongNormal < 0) {
-          const impulse = -speedAlongNormal;
-          ball.vx = relativeVx + impulse * normalX + player.vx;
-          ball.vy = relativeVy + impulse * normalY + player.vy;
+          const impulse = -(1 + 0.7) * speedAlongNormal;
+          ball.vx = ball.vx + impulse * normalX + player.vx * carryFactor;
+          ball.vy = ball.vy + impulse * normalY + player.vy * carryFactor;
         } else {
-          ball.vx = player.vx;
-          ball.vy = player.vy;
+          ball.vx += player.vx * carryFactor;
+          ball.vy += player.vy * carryFactor;
         }
       } else {
         if (speedAlongNormal >= 0) {
           return;
         }
 
-        const restitution = collisionType === 'foot' ? 1.5 : 1.0;
+        const restitution = collisionType === 'foot' ? 1.5 : 1.25;
         const impulse = -(1 + restitution) * speedAlongNormal;
 
-        ball.vx = relativeVx + impulse * normalX + player.vx;
-        ball.vy = relativeVy + impulse * normalY + player.vy;
+        ball.vx = ball.vx + impulse * normalX + player.vx * carryFactor;
+        ball.vy = ball.vy + impulse * normalY + player.vy * carryFactor;
 
         // Active kicks add extra force compared to passive body pushes.
         if (collisionType === 'foot' && player.attacking) {
           const kickDir = player.footDirection === 'left' ? -1 : 1;
-          ball.vx += kickDir * 13.2;
-          ball.vy -= 5.8;
+          ball.vx += kickDir * 8.4;
+          ball.vy -= 3.2;
         }
       }
 
