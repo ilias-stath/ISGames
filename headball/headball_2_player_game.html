@@ -252,11 +252,14 @@
     const GROUND_Y = 470;
     const PLAYER_WIDTH = 36;
     const PLAYER_HEIGHT = 72;
-    const BALL_RADIUS = 10;
+    const BALL_RADIUS = 12;
     const MATCH_DURATION_MS = 60 * 1000;
     const GOAL_POST_HEIGHT = PLAYER_HEIGHT + 30;
     const GOAL_TOP_Y = GROUND_Y - GOAL_POST_HEIGHT;
     const GOAL_POST_WIDTH = 36;
+    const FOOT_REST_ANGLE = 0;
+    const FOOT_KICK_ANGLE = -Math.PI / 2;
+    const COLLISION_SEPARATION = 0.8;
     const P1_START_X = 650;
     const P2_START_X = 150;
     const PLAYER_START_Y = GROUND_Y - PLAYER_HEIGHT;
@@ -281,7 +284,9 @@
       isJumping: false,
       attacking: false,
       kickHeld: false,
-      footKickAngle: 0,
+      footKickAngle: FOOT_REST_ANGLE,
+      prevFootKickAngle: FOOT_REST_ANGLE,
+      footMoving: false,
       wasKickHeld: false,
       kickReboundTimer: 0,
       maxSpeed: 4,
@@ -300,7 +305,9 @@
       isJumping: false,
       attacking: false,
       kickHeld: false,
-      footKickAngle: 0,
+      footKickAngle: FOOT_REST_ANGLE,
+      prevFootKickAngle: FOOT_REST_ANGLE,
+      footMoving: false,
       wasKickHeld: false,
       kickReboundTimer: 0,
       maxSpeed: 4,
@@ -382,10 +389,9 @@
       if (player.x < 0) player.x = 0;
       if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
 
-      // Kick pose: down while held, then a short upward rebound (~half angle) after release.
-      const dirSign = player.footDirection === 'left' ? -1 : 1;
-      const downKickAngle = dirSign * (30 * Math.PI / 180);
-      const reboundAngle = -dirSign * (24 * Math.PI / 180);
+      // Kick pose: rest below the player, then swing outward when held.
+      const restAngle = FOOT_REST_ANGLE;
+      const kickAngle = player.footDirection === 'left' ? Math.PI/2 : FOOT_KICK_ANGLE;
 
       if (!player.kickHeld && player.wasKickHeld) {
         player.kickReboundTimer = 8;
@@ -394,13 +400,20 @@
 
       let kickTarget = 0;
       if (player.kickHeld) {
-        kickTarget = downKickAngle;
+        kickTarget = kickAngle;
       } else if (player.kickReboundTimer > 0) {
-        kickTarget = reboundAngle;
+        kickTarget = restAngle;
         player.kickReboundTimer--;
+      } else {
+        kickTarget = restAngle;
       }
 
+      // detect foot movement by comparing angle to previous frame
+      const prevAngle = player.prevFootKickAngle !== undefined ? player.prevFootKickAngle : player.footKickAngle;
       player.footKickAngle += (kickTarget - player.footKickAngle) * 0.22;
+      const delta = player.footKickAngle - prevAngle;
+      player.footMoving = Math.abs(delta) > 0.01;
+      player.prevFootKickAngle = player.footKickAngle;
       player.attacking = player.kickHeld || player.kickReboundTimer > 0;
     }
 
@@ -501,6 +514,8 @@
       }
     }
 
+    // resolveBallTrappedBetweenPlayers removed per user request
+
     function resetBall() {
       ball.x = canvas.width / 2;
       ball.y = 150;
@@ -518,7 +533,9 @@
       player.kickHeld = false;
       player.wasKickHeld = false;
       player.kickReboundTimer = 0;
-      player.footKickAngle = 0;
+      player.footKickAngle = FOOT_REST_ANGLE;
+      player.prevFootKickAngle = FOOT_REST_ANGLE;
+      player.footMoving = false;
     }
 
     function resetPlayersToStart() {
@@ -582,16 +599,16 @@
       const headRadius = 28;
       const headX = player.x + player.width / 2;
       const headY = player.y + player.height - headRadius;
-      const footRectWidth = 24;
-      const toeLength = 12;
-      const footHeight = 8;
-      const footGroundOffset = 6;
-      const footCenterOffset = 3;
+      const footRectWidth = 22;
+      const toeLength = 14;
+      const footHeight = 14;
       const footWidth = footRectWidth + toeLength;
-      const footX = player.footDirection === 'left' ? headX - footWidth - footCenterOffset : headX + footCenterOffset;
-      const footY = player.y + player.height - footHeight + footGroundOffset;
-      const footPivotX = player.footDirection === 'left' ? footX + footWidth : footX;
-      const footPivotY = footY + footHeight / 2;
+      const footPivotShift = footRectWidth / 8;
+      const footOrbitRadius = headRadius - 2 + footHeight / 2;
+      const footX =  headX - footRectWidth / 2;
+      const footY = headY + footOrbitRadius - footHeight / 2;
+      const footPivotX = headX;
+      const footPivotY = headY + 1; // nudge foot slightly lower
       const kickAngle = player.footKickAngle || 0;
 
       return {
@@ -606,27 +623,55 @@
           direction: player.footDirection,
           pivotX: footPivotX,
           pivotY: footPivotY,
+          orbitRadius: footOrbitRadius,
+          pivotShift: footPivotShift,
           angle: kickAngle
         }
       };
     }
 
     function getFootWorldPoints(foot) {
+      // Build polygon: rectangle then semicircle toe approximated with multiple points
+      const rectLeft = -foot.rectWidth / 2 + foot.pivotShift;
+      const rectRight = foot.rectWidth / 2 + foot.pivotShift;
+      const topY = -foot.height / 2;
+      const bottomY = foot.height / 2;
+
+      // collisionInset moves the inner edge toward the pivot so the foot
+      // collision reaches slightly closer to the player's center
+      const collisionInset = 6;
+      const rectLeftCollision = rectLeft + collisionInset;
+
       const localPoints = [
-        { x: 0, y: -foot.height / 2 },
-        { x: foot.rectWidth, y: -foot.height / 2 },
-        { x: foot.rectWidth + foot.toeLength, y: foot.height / 2 },
-        { x: 0, y: foot.height / 2 }
+        { x: rectLeftCollision, y: topY },
+        { x: rectRight, y: topY }
       ];
 
-      const cos = Math.cos(foot.angle || 0);
-      const sin = Math.sin(foot.angle || 0);
+      // semicircle parameters (center relative to rect local coords)
+      const toeRadius = Math.max(2, foot.toeLength / 2);
+      const toeCenterX = rectRight + foot.toeLength / 2;
+      const segments = 8;
+      for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        const angle = -Math.PI / 2 + t * Math.PI; // -90deg -> +90deg
+        const px = toeCenterX + Math.cos(angle) * toeRadius;
+        const py = Math.sin(angle) * toeRadius;
+        localPoints.push({ x: px, y: py });
+      }
+
+      localPoints.push({ x: rectRight, y: bottomY });
+      localPoints.push({ x: rectLeftCollision, y: bottomY });
+
+      const rotation = foot.angle || 0;
+      const cos = Math.cos(rotation);
+      const sin = Math.sin(rotation);
       const mirror = foot.direction === 'left' ? -1 : 1;
 
       return localPoints.map(point => {
         const mirroredX = point.x * mirror;
-        const rotatedX = mirroredX * cos - point.y * sin;
-        const rotatedY = mirroredX * sin + point.y * cos;
+        const translatedY = point.y + foot.orbitRadius;
+        const rotatedX = mirroredX * cos - translatedY * sin;
+        const rotatedY = mirroredX * sin + translatedY * cos;
         return {
           x: rotatedX + foot.pivotX,
           y: rotatedY + foot.pivotY
@@ -682,17 +727,18 @@
           return;
         }
 
-        const restitution = collisionType === 'foot' ? 1.5 : 1.25;
+        // reduce bounce: lower restitution to make bounces less violent
+        const restitution = collisionType === 'foot' ? 0.9 : 0.8;
         const impulse = -(1 + restitution) * speedAlongNormal;
 
         ball.vx = ball.vx + impulse * normalX + player.vx * carryFactor;
         ball.vy = ball.vy + impulse * normalY + player.vy * carryFactor;
 
-        // Active kicks add extra force compared to passive body pushes.
-        if (collisionType === 'foot' && player.attacking) {
+        // Active kicks add less extra force now to soften impact
+        if (collisionType === 'foot' && player.attacking && player.footMoving) {
           const kickDir = player.footDirection === 'left' ? -1 : 1;
-          ball.vx += kickDir * 8.4;
-          ball.vy -= 3.2;
+          ball.vx += kickDir * 5.0;
+          ball.vy -= 2.0;
         }
       }
 
@@ -718,11 +764,11 @@
         if (distance < minDistance) {
           const normalX = distance === 0 ? 1 : dx / distance;
           const normalY = distance === 0 ? 0 : dy / distance;
-          const overlap = minDistance - distance;
+            const overlap = minDistance - distance;
 
-          ball.x += normalX * overlap;
-          ball.y += normalY * overlap;
-          applyDynamicBounce(normalX, normalY, player, 'head');
+            ball.x += normalX * (overlap + COLLISION_SEPARATION);
+            ball.y += normalY * (overlap + COLLISION_SEPARATION);
+            applyDynamicBounce(normalX, normalY, player, 'head');
           return true;
         }
       }
@@ -768,8 +814,8 @@
           }
 
           const overlap = inside ? ball.radius + closestDistance : ball.radius - closestDistance;
-          ball.x += normalX * overlap;
-          ball.y += normalY * overlap;
+          ball.x += normalX * (overlap + COLLISION_SEPARATION);
+          ball.y += normalY * (overlap + COLLISION_SEPARATION);
           applyDynamicBounce(normalX, normalY, player, 'foot');
           return true;
         }
@@ -783,9 +829,6 @@
       const headRadius = parts.head.radius;
       const headX = parts.head.x;
       const headY = parts.head.y;
-      const footX = parts.foot.x;
-      const footY = parts.foot.y;
-      const footWidth = parts.foot.width;
       const footHeight = parts.foot.height;
       const footRectWidth = parts.foot.rectWidth;
       const toeLength = parts.foot.toeLength;
@@ -793,6 +836,9 @@
       const kickAngle = player.footKickAngle || 0;
       const footPivotX = parts.foot.pivotX;
       const footPivotY = parts.foot.pivotY;
+      const footOrbitRadius = parts.foot.orbitRadius;
+      const footPivotShift = parts.foot.pivotShift;
+      const rotation = kickAngle;
 
       ctx.save();
       ctx.beginPath();
@@ -810,7 +856,8 @@
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
       ctx.save();
       ctx.translate(footPivotX, footPivotY);
-      ctx.rotate(kickAngle);
+      ctx.rotate(rotation);
+      ctx.translate(0, footOrbitRadius);
       if (footDirection === 'left') {
         ctx.scale(-1, 1);
       }
@@ -820,14 +867,18 @@
       ctx.lineWidth = 1;
 
       ctx.beginPath();
-      ctx.rect(0, -footHeight / 2, footRectWidth, footHeight);
+      ctx.rect(-footRectWidth / 2 + footPivotShift, -footHeight / 2, footRectWidth, footHeight);
       ctx.fill();
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.moveTo(footRectWidth, -footHeight / 2);
-      ctx.lineTo(footRectWidth, footHeight / 2);
-      ctx.lineTo(footRectWidth + toeLength, footHeight / 2);
+      // draw semicircle toe
+      const toeRadius = Math.max(2, toeLength / 2);
+      const toeCenterX = footRectWidth / 2 + footPivotShift + toeLength / 2;
+      ctx.beginPath();
+      ctx.moveTo(footRectWidth / 2 + footPivotShift, -footHeight / 2);
+      ctx.arc(toeCenterX, 0, toeRadius, -Math.PI / 2, Math.PI / 2);
+      ctx.lineTo(footRectWidth / 2 + footPivotShift, footHeight / 2);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -897,6 +948,7 @@
       updatePlayer(p2, 'a', 'd', 'w');
       resolvePlayerCollision();
       updateBall();
+      // (previous untrap removed)
 
       if (!gameActive) {
         return;
