@@ -637,10 +637,9 @@
       const topY = -foot.height / 2;
       const bottomY = foot.height / 2;
 
-      // collisionInset moves the inner edge toward the pivot so the foot
-      // collision reaches slightly closer to the player's center
-      const collisionInset = 6;
-      const rectLeftCollision = rectLeft + collisionInset;
+      // collisionExtension: negative value makes the rect reach further toward the pivot (player center)
+      const collisionExtension = -10; // extend collision inward a bit more
+      const rectLeftCollision = rectLeft + collisionExtension;
 
       const localPoints = [
         { x: rectLeftCollision, y: topY },
@@ -648,8 +647,8 @@
       ];
 
       // semicircle parameters (center relative to rect local coords)
-      const toeRadius = Math.max(2, foot.toeLength / 2);
-      const toeCenterX = rectRight + foot.toeLength / 2;
+      const toeRadius = Math.max(2, foot.toeLength / 2 + 2);
+      const toeCenterX = rectRight + foot.toeLength / 2 + 2;
       const segments = 8;
       for (let i = 0; i <= segments; i++) {
         const t = i / segments;
@@ -688,6 +687,7 @@
       const t = abLengthSquared === 0 ? 0 : Math.max(0, Math.min(1, (apx * abx + apy * aby) / abLengthSquared));
       return { x: ax + abx * t, y: ay + aby * t };
     }
+ 
 
     function pointInPolygon(px, py, points) {
       let inside = false;
@@ -711,7 +711,8 @@
       const relativeVx = ball.vx - player.vx;
       const relativeVy = ball.vy - player.vy;
       const speedAlongNormal = relativeVx * normalX + relativeVy * normalY;
-      const carryFactor = collisionType === 'foot' ? (player.attacking ? 0.28 : 0.16) : 0.2;
+      // soften how much player velocity is transferred to the ball
+      const carryFactor = collisionType === 'foot' ? (player.attacking ? 0.18 : 0.10) : 0.12;
 
       if (collisionType === 'foot' && !player.attacking) {
         if (speedAlongNormal < 0) {
@@ -727,16 +728,17 @@
           return;
         }
 
-        // reduce bounce: lower restitution to make bounces less violent
-        const restitution = collisionType === 'foot' ? 0.9 : 0.8;
+        // further soften bounce and impulse
+        const restitution = collisionType === 'foot' ? 0.5 : 0.4;
         const impulse = -(1 + restitution) * speedAlongNormal;
 
         ball.vx = ball.vx + impulse * normalX + player.vx * carryFactor;
         ball.vy = ball.vy + impulse * normalY + player.vy * carryFactor;
 
-        // Active kicks add less extra force now to soften impact
+        // Active kicks: smaller added impulse to reduce violent knock-ons
         if (collisionType === 'foot' && player.attacking && player.footMoving) {
           const kickDir = player.footDirection === 'left' ? -1 : 1;
+          // restore a bit more kick power while keeping overall softer collisions
           ball.vx += kickDir * 5.0;
           ball.vy -= 2.0;
         }
@@ -754,26 +756,7 @@
     function checkCollision(player) {
       const parts = getPlayerParts(player);
 
-      // Head collision
-      {
-        const dx = ball.x - parts.head.x;
-        const dy = ball.y - parts.head.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const minDistance = ball.radius + parts.head.radius;
-
-        if (distance < minDistance) {
-          const normalX = distance === 0 ? 1 : dx / distance;
-          const normalY = distance === 0 ? 0 : dy / distance;
-            const overlap = minDistance - distance;
-
-            ball.x += normalX * (overlap + COLLISION_SEPARATION);
-            ball.y += normalY * (overlap + COLLISION_SEPARATION);
-            applyDynamicBounce(normalX, normalY, player, 'head');
-          return true;
-        }
-      }
-
-      // Foot collision
+      // Foot collision (check first so active kicks/foot take precedence over head)
       {
         const footPolygon = getFootWorldPoints(parts.foot);
         let closestPoint = null;
@@ -817,6 +800,25 @@
           ball.x += normalX * (overlap + COLLISION_SEPARATION);
           ball.y += normalY * (overlap + COLLISION_SEPARATION);
           applyDynamicBounce(normalX, normalY, player, 'foot');
+          return true;
+        }
+      }
+
+      // Head collision (checked after foot so foot has priority)
+      {
+        const dx = ball.x - parts.head.x;
+        const dy = ball.y - parts.head.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const minDistance = ball.radius + parts.head.radius;
+
+        if (distance < minDistance) {
+          const normalX = distance === 0 ? 1 : dx / distance;
+          const normalY = distance === 0 ? 0 : dy / distance;
+          const overlap = minDistance - distance;
+
+          ball.x += normalX * (overlap + COLLISION_SEPARATION);
+          ball.y += normalY * (overlap + COLLISION_SEPARATION);
+          applyDynamicBounce(normalX, normalY, player, 'head');
           return true;
         }
       }
